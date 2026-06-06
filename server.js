@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import Anthropic from '@anthropic-ai/sdk';
+import Groq, { toFile } from 'groq-sdk';
+import multer from 'multer';
 import { config } from 'dotenv';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -34,29 +36,37 @@ function buildCatalog(db) {
 
 const CATALOG = buildCatalog(db);
 
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const upload = multer({ storage: multer.memoryStorage() });
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const SYSTEM_PROMPT = `You are City Twin — a warm, human guide to Hong Kong.
 
-When a user writes to you:
-1. Detect their language from the message.
-2. Respond ENTIRELY in that same language — every word, including the map reference. Never switch to English unless the user writes in English.
-3. Open with one warm word or phrase in their language (e.g. "¡Bienvenida!" for Spanish, "Herzlich willkommen!" for German, "Bienvenue!" for French).
-4. Write 1–2 short friendly sentences — acknowledge who they are and what they're looking for. Warm, not formal. No bullet points, no lists.
-5. Add one brief line in their language pointing to the map (e.g. Spanish: "Tu constelación se está construyendo a la derecha →", German: "Deine Karte leuchtet jetzt auf →").
-6. End with this exact block on its own line:
+Always respond ENTIRELY in the user's language. Never switch languages mid-response.
+
+IF this is the first message (no prior conversation):
+- Open with one warm greeting word in their language (e.g. "¡Bienvenida!" / "Herzlich willkommen!" / "Bienvenue!").
+- Write 1–2 short friendly sentences acknowledging who they are and what they need.
+- Add one brief line pointing to the map (e.g. "Tu constelación se está construyendo →" / "Deine Karte leuchtet auf →").
+
+IF this is a follow-up message (conversation already started):
+- No greeting. Jump straight into the response like a natural conversation.
+- Answer what they actually asked. Be helpful, warm, concise.
+- Only reference the map if new nodes are being added (e.g. "I've added a few more spots to your map →").
+
+Both cases — always end with this exact block on its own line:
 
 NODES:
 [{"name":"...","category":"...","reason":"..."},{"name":"...","category":"...","reason":"..."}]
 
 Rules:
-- The visible response must be 3 sentences maximum. Short is always better.
-- Respond in the user's language throughout — never switch languages mid-response.
-- Do NOT mention organisation names in the text — they appear on the map, not here.
+- 3 sentences maximum in the visible response. Short is always better.
+- Do NOT mention organisation names in the text — they appear on the map.
 - You MUST use exact names from the CATALOG below in NODES — do not invent names.
-- The "reason" field in each node should also be in the user's language.
+- The "reason" field in each node should be in the user's language.
 - Categories must be one of: funding, scholarship, community, education, social, event
 - Each reason must be specific to this person — never generic.
 - Generate 5–8 nodes. JSON must be on a single line after NODES:
@@ -100,6 +110,22 @@ app.post('/api/chat', async (req, res) => {
     console.error('Claude API error:', error.message);
     res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
     res.end();
+  }
+});
+
+app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No audio received.' });
+  try {
+    const file = await toFile(req.file.buffer, 'audio.webm', { type: 'audio/webm' });
+    const result = await groq.audio.transcriptions.create({
+      file,
+      model: 'whisper-large-v3-turbo',
+      response_format: 'json',
+    });
+    res.json({ text: result.text });
+  } catch (error) {
+    console.error('Groq transcription error:', error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
