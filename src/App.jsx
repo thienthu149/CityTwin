@@ -257,8 +257,8 @@ export default function App() {
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                className="absolute inset-x-0 bottom-0 rounded-t-3xl overflow-hidden shadow-2xl"
-                style={{ height: '85vh', zIndex: 50 }}
+                className="absolute inset-0 overflow-hidden"
+                style={{ zIndex: 50 }}
               >
                 <ChatPanel
                   messages={messages}

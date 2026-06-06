@@ -78,9 +78,9 @@ const events: TimelineEvent[] = [
 export function OpportunityTimeline() {
   return (
     <div className="h-full bg-[#0a0e27] overflow-hidden flex flex-col">
-      <div className="p-4 bg-[#0f1729] border-b border-white/10">
-        <h2 className="text-white">Suggested Schedule</h2>
-        <p className="text-gray-400" style={{ fontSize: '0.875rem' }}>
+      <div className="px-5 py-5 bg-[#0f1729] border-b border-white/10">
+        <p className="text-white font-bold" style={{ fontSize: '1.6rem' }}>Suggested Schedule</p>
+        <p className="text-gray-400 mt-1" style={{ fontSize: '0.9rem' }}>
           Upcoming opportunities in Hong Kong
         </p>
       </div>
@@ -139,19 +139,19 @@ export function OpportunityTimeline() {
                 {/* Event card */}
                 <motion.div
                   whileTap={{ scale: 0.98 }}
-                  className="flex-1 p-4 rounded-2xl border-2 bg-[#1a1f3a] shadow-sm active:shadow-md transition-shadow"
+                  className="flex-1 p-5 rounded-2xl border-2 bg-[#1a1f3a] shadow-sm active:shadow-md transition-shadow"
                   style={{
                     borderColor: `${event.color}60`,
                     boxShadow: `0 0 20px ${event.color}20`
                   }}
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-3">
                     <span
-                      className="px-3 py-1 rounded-lg text-white"
+                      className="px-4 py-1.5 rounded-full text-white"
                       style={{
                         backgroundColor: event.color,
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
                         boxShadow: `0 0 10px ${event.color}50`
                       }}
                     >
@@ -159,11 +159,11 @@ export function OpportunityTimeline() {
                     </span>
                   </div>
 
-                  <h4 className="text-white mb-3" style={{ fontSize: '1rem', fontWeight: '600' }}>
+                  <h4 className="text-white mb-4" style={{ fontSize: '1.15rem', fontWeight: '700' }}>
                     {event.title}
                   </h4>
 
-                  <div className="space-y-2 text-gray-400 mb-4" style={{ fontSize: '0.875rem' }}>
+                  <div className="space-y-2.5 text-gray-400 mb-5" style={{ fontSize: '0.95rem' }}>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 flex-shrink-0" />
                       <span>
@@ -178,8 +178,9 @@ export function OpportunityTimeline() {
 
                   <motion.button
                     whileTap={{ scale: 0.98 }}
-                    className="w-full py-2.5 rounded-xl text-white text-sm font-medium shadow-sm active:shadow-md transition-all"
+                    className="w-full py-4 rounded-full text-white font-semibold shadow-sm active:shadow-md transition-all"
                     style={{
+                      fontSize: '1rem',
                       backgroundColor: event.color,
                       boxShadow: `0 0 15px ${event.color}50`
                     }}
