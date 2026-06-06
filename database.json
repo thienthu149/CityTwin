@@ -1,0 +1,77 @@
+{
+    "hong_kong_ecosystem": {
+        "funding": [
+            {"id": "f1", "name": "Cyberport Incubation Programme", "category": "Funding", "details": "Up to HK$500,000 in financial assistance, and HK$200,000 on-site rental subsidy alongside extensive technical and business support"},
+            {"id": "f2", "name": "HKSTP Incubation Programme", "category": "Funding", "details": "3-year programme offering up to HKD 1.29M funding, R&D support, mentorship & investor matching"},
+            {"id": "f3", "name": "Innovation & Technology Fund (ITF)", "category": "Funding", "details": "Government matching funds for R&D and commercialization projects."},
+            {"id": "f4", "name": "InvestHK Advisory Services", "category": "Funding", "details": "Free customized setup support and regulatory guidance for incoming companies."},
+            {"id": "f5", "name": "Brinc Accelerator", "category": "Funding", "details": "Global venture accelerator with specialized tracks for AI and IoT."},
+            {"id": "f6", "name": "Zeroth", "category": "Funding", "details": "Pre-seed accelerator explicitly focused on early-stage AI, robotics or blockchain startups."},
+            {"id": "f7", "name": "Blueprint (HSBC)", "category": "Funding", "details": "Fintech accelerator, scale-up program, and workspace backed by HSBC."},
+            {"id": "f8", "name": "Cyberport Macro Fund", "category": "Funding", "details": "Co-investment capital for scalable mid-stage digital tech ventures."},
+            {"id": "f9", "name": "Technology Voucher Programme (TVP)", "category": "Funding", "details": "Subsidies up to HKD 600K to renovate local business technological systems."}
+
+        ],
+        "scholarships_and_education": [
+            {"id": "e1", "name": "HKU Entrance Scholarships for Non-local Students", "category": "Scholarships & Education", "details": "Merit-based entrance funding covering up to full tuition for all international undergraduate applicants."},
+            {"id": "e2", "name": "HKU Scholarships for European Students", "category": "Scholarships & Education", "details": "Funding up to HKD 120K/year for European undergraduates.", 
+            "_comment": "generic response for Sofia"},
+            {"id": "e3", "name": "HKUST Global Scholarships", "category": "Scholarships & Education", "details": "Merit-based financial aid for high-achieving international talent."},
+            {"id": "e4", "name": "CUHK International Student Scholarships", "category": "Scholarships & Education", "details": "Tuition waivers and living stipends for non-local students."},
+            {"id": "e5", "name": "HKTE Top Talent Pass Scheme", "category": "Scholarships & Education", "details": "Fast-tracked 2-year work visa for high earners and top university graduates."},
+            {"id": "e6", "name": "HKTE Quality Migrant Admission Scheme", "category": "Scholarships & Education", "details": "Points-based entry system for highly qualified global professionals."},
+            {"id": "e7", "name": "HKTE Free Cantonese Basics Course", "category": "Scholarships & Education", "details": "Language integration classes funded entirely by HKTE."},
+            {"id": "e8", "name": "CityU International Student Award", "category": "Scholarships & Education", "details": "Scholarships covering tuition and basic campus living expenses."},
+            {"id": "e9", "name": "PolyU International Postgrad Fellowship", "category": "Scholarships & Education", "details": "Research stipends for incoming PhD and Master's engineering tracks."},
+            {"id": "e10", "name": "HKSAR Government Scholarship Fund", "category": "Scholarships & Education", "details": "Government-backed financial awards recognizing outstanding non-local talent."},
+            {"id": "e11", "name": "Hong Kong PhD Fellowship Scheme (HKPFS)", "category": "Scholarships & Education", "details": "Monthly stipend of HKD 28K plus travel allowances for global PhD candidates."}
+
+        ],
+        "communities_by_nationality": [
+            {"id": "n1", "name": "Spanish Chamber of Commerce HK", "category": "Communities by Nationality", "details": "Business and social network hosting 3,000+ Spanish-speaking members."},
+            {"id": "n2", "name": "French Chamber HK", "category": "Communities by Nationality", "details": "One of the largest European business networks in Hong Kong."},
+            {"id": "n3", "name": "German Business Association HK", "category": "Communities by Nationality", "details": "Professional network linking German expats and corporate leads."},
+            {"id": "n4", "name": "German Chamber of Commerce HK", "category": "Communities by Nationality", "details": "National business group facilitating German corporate entry into HK."},
+            {"id": "n5", "name": "Indian Founders HK", "category": "Communities by Nationality", "details": "A fast-growing community of Indian tech entrepreneurs and builders."},
+            {"id": "n6", "name": "Latin American Community HK", "category": "Communities by Nationality", "details": "Cultural and social hub linking South and Central American expats."},
+            {"id": "n7", "name": "EuroExpats HK", "category": "Communities by Nationality", "details": "Cross-national European expat group for peer social integration."},
+            {"id": "n8", "name": "Erasmus Alumni HK Network", "category": "Communities by Nationality", "details": "Social circle for past European exchange students living in HK."}
+
+        ],
+        "entrepreneurship_communities": [
+            {"id": "c1", "name": "StartupHK", "category": "Entrepreneurship Communities", "details": "Active tech startup network and Slack community with 8,000+ founders."},
+            {"id": "c2", "name": "Women Founders HK", "category": "Entrepreneurship Communities", "details": "Dedicated peer-to-peer mentorship circles and funding panels."},
+            {"id": "c3", "name": "AI Community HK", "category": "Entrepreneurship Communities", "details": "Weekly events, deep-tech panels, and active co-founder matching."},
+            {"id": "c4", "name": "FinTech Association HK (FTAHK)", "category": "Entrepreneurship Communities", "details": "The largest organized industry body for fintech builders in the region."},
+            {"id": "c5", "name": "RISE Conference Network", "category": "Entrepreneurship Communities", "details": "Global tech ecosystem connections spinning out of the annual conference."},
+            {"id": "c6", "name": "InnoHK Research Clusters", "category": "Entrepreneurship Communities", "details": "28 world-class R&D centers bridging the gap from research to market."},
+            {"id": "c7", "name": "HKSTP AI Lab", "category": "Entrepreneurship Communities", "details": "A specialized research-to-market platform tailored for technical AI founders."},
+            {"id": "c8", "name": "WHub Hong Kong", "category": "Entrepreneurship Communities", "details": "A community-driven digital platform mapping the HK startup scene."},
+            {"id": "c9", "name": "Garage Society HK", "category": "Entrepreneurship Communities", "details": "Coworking network running regular international founder mixers."},
+            {"id": "c10", "name": "PropTech Association HK", "category": "Entrepreneurship Communities", "details": "Community for entrepreneurs innovating in real estate and urban tech."}
+
+        ],
+        "student_communities": [
+            {"id": "s1", "name": "CUHK International House", "category": "Student Communities", "details": "Dedicated international student housing and cultural programming."},
+            {"id": "s2", "name": "Student Union HKU", "category": "Student Communities", "details": "Central student body organizing university campus life and clubs."},
+            {"id": "s3", "name": "HKUST Entrepreneurship Club", "category": "Student Communities", "details": "Student-led ecosystem helping tech students build real products."},
+            {"id": "s4", "name": "HKU Innovation Club", "category": "Student Communities", "details": "Student organization linking engineering and business tracks."},
+            {"id": "s5", "name": "PolyU International Student Association", "category": "Student Communities", "details": "A peer-led integration community for non-local arrivals."},
+            {"id": "s6", "name": "AIESEC Hong Kong", "category": "Student Communities", "details": "International student leadership and cross-border exchange platform."},
+            {"id": "s7", "name": "CityU Postgraduate Association", "category": "Student Communities", "details": "Social and professional networking specifically for academic researchers."},
+            {"id": "s8", "name": "HKUST Global Ambassadors", "category": "Student Communities", "details": "Student network helping international freshmen adjust to Hong Kong life."}
+
+        ],
+        "real_social_integration": [
+            {"id": "i1", "name": "HKTE Volunteer Programme", "category": "Real Social Integration", "details": "Civic engagement projects directly backed by Hong Kong Talent Engage."},
+            {"id": "i2", "name": "Foodlink HK", "category": "Real Social Integration", "details": "A widespread local food bank network open to expat volunteers."},
+            {"id": "i3", "name": "Hong Kong Trail Runners", "category": "Real Social Integration", "details": "Social sports group running the island's major nature paths."},
+            {"id": "i4", "name": "M'goi Language Exchange", "category": "Real Social Integration", "details": "Cultural meetups centered around learning basic Cantonese phrases."},
+            {"id": "i5", "name": "HandsOn Hong Kong", "category": "Real Social Integration", "details": "A hub offering flexible volunteer opportunities across local charities."},
+            {"id": "i6", "name": "Outward Bound HK", "category": "Real Social Integration", "details": "Outdoor team-building and integration experiences for newcomers."},
+            {"id": "i7", "name": "HK Social Hub", "category": "Real Social Integration", "details": "Weekly community-run networking mixers across the city center."},
+            {"id": "i8", "name": "Hong Kong Dragon Boat Association", "category": "Real Social Integration", "details": "Traditional water sports club highly popular for expat integration."}
+
+        ]
+    }
+}
