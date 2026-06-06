@@ -7,6 +7,15 @@ const COLORS = {
   culture:          '#00bcd4',
 };
 
+const GRADIENTS = {
+  community:        'linear-gradient(135deg, #e91e8c, #c2185b)',
+  grant:            'linear-gradient(135deg, #ff9800, #e65100)',
+  entrepreneurship: 'linear-gradient(135deg, #9c27b0, #6a1b9a)',
+  scholarship:      'linear-gradient(135deg, #4caf50, #2e7d32)',
+  education:        'linear-gradient(135deg, #4488ff, #1a56cc)',
+  culture:          'linear-gradient(135deg, #00bcd4, #00838f)',
+};
+
 const EVENTS = [
   { category: 'community',       title: 'Hong Kong Tech Startup Meetup',  date: 'Jun 10 at 6:00 PM',  location: 'Cyberport, Hong Kong' },
   { category: 'grant',           title: 'Innovation Grant Workshop',       date: 'Jun 15 at 2:00 PM',  location: 'Science Park, Hong Kong' },
@@ -16,39 +25,79 @@ const EVENTS = [
 
 export default function ScheduleView() {
   return (
-    <div className="schedule-view">
-      <div className="schedule-list">
+    <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+      <div className="px-5 pt-5 pb-28">
         {EVENTS.map((ev, i) => {
           const color = COLORS[ev.category] || '#888';
+          const gradient = GRADIENTS[ev.category] || color;
           return (
-            <div key={i} className="schedule-row">
-              <div className="schedule-left">
-                <div className="timeline-icon" style={{ background: color }}>
+            <div key={i} className="flex gap-4 items-stretch">
+
+              {/* Timeline column: icon + vertical connector */}
+              <div className="flex flex-col items-center flex-shrink-0">
+                <div
+                  className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 mt-5"
+                  style={{ background: gradient, boxShadow: `0 4px 18px ${color}55` }}
+                >
                   <CategoryIcon type={ev.category} />
                 </div>
                 {i < EVENTS.length - 1 && (
-                  <div className="timeline-line" />
+                  <div
+                    className="w-px my-2"
+                    style={{
+                      flex: 1,
+                      minHeight: 28,
+                      background: 'linear-gradient(to bottom, rgba(156,39,176,0.45), rgba(156,39,176,0.06))',
+                    }}
+                  />
                 )}
               </div>
-              <div className="event-card" style={{ borderColor: `${color}66` }}>
-                <span className="event-badge" style={{ background: `${color}25`, color }}>
+
+              {/* Event card */}
+              <div
+                className="flex-1 flex flex-col gap-3 rounded-2xl p-5 mt-3 mb-5"
+                style={{
+                  border: `1px solid ${color}50`,
+                  background: 'rgba(11, 19, 46, 0.9)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+                }}
+              >
+                {/* Category badge */}
+                <span
+                  className="inline-flex items-center px-3.5 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase w-fit"
+                  style={{ background: `${color}25`, color, border: `1px solid ${color}45` }}
+                >
                   {ev.category}
                 </span>
-                <h3 className="event-title">{ev.title}</h3>
-                <div className="event-meta">
-                  <div className="event-meta-row">
+
+                {/* Title */}
+                <h3 className="text-[17px] font-bold text-white leading-snug tracking-tight">
+                  {ev.title}
+                </h3>
+
+                {/* Date & location */}
+                <div className="flex flex-col gap-2.5">
+                  <div className="flex items-center gap-2.5 text-[13px]" style={{ color: '#6b7a99' }}>
                     <CalIcon color={color} />
                     <span>{ev.date}</span>
                   </div>
-                  <div className="event-meta-row">
+                  <div className="flex items-center gap-2.5 text-[13px]" style={{ color: '#6b7a99' }}>
                     <PinIcon color={color} />
                     <span>{ev.location}</span>
                   </div>
                 </div>
-                <button className="event-cta" style={{ background: color }}>
+
+                {/* CTA */}
+                <button
+                  className="w-full py-3.5 rounded-2xl text-white text-sm font-bold tracking-wide transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
+                  style={{ background: gradient, boxShadow: `0 4px 14px ${color}44` }}
+                >
                   Add to Calendar
                 </button>
               </div>
+
             </div>
           );
         })}
