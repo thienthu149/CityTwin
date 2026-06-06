@@ -290,21 +290,59 @@ export default function ConstellationMap({ nodes }) {
       {tooltip && (
         <div
           className="node-tooltip"
-          style={{ left: tooltip.x, top: tooltip.y }}
+          style={{ 
+            left: tooltip.x, 
+            top: tooltip.y,
+            pointerEvents: 'auto' // Allows the user to click the link
+          }}
+          onMouseLeave={() => { tooltipRef.current.node = null; setTooltip(null); }}
         >
+          {/* Display the chronological month */}
+          {tooltip.node.month && (
+            <div className="node-tooltip-month" style={{ fontSize: '10px', color: '#888', marginBottom: '4px' }}>
+              🗓️ {tooltip.node.month}
+            </div>
+          )}
+
           <div
             className="node-tooltip-name"
-            style={{ color: COLORS[tooltip.node.category] || '#fff' }}
+            style={{ color: COLORS[tooltip.node.category] || '#fff', fontWeight: 'bold', marginBottom: '2px' }}
           >
             {tooltip.node.name}
           </div>
+          
           <div
             className="node-tooltip-cat"
-            style={{ color: COLORS[tooltip.node.category] || '#fff' }}
+            style={{ color: COLORS[tooltip.node.category] || '#fff', fontSize: '10px', textTransform: 'uppercase', marginBottom: '6px' }}
           >
             {tooltip.node.category}
           </div>
-          <div className="node-tooltip-reason">{tooltip.node.reason}</div>
+          
+          <div className="node-tooltip-reason" style={{ fontSize: '12px', marginBottom: '8px' }}>
+            {tooltip.node.reason}
+          </div>
+
+          {/* Render the clickable link */}
+          {tooltip.node.link && (
+            <a 
+              href={tooltip.node.link} 
+              target="_blank" 
+              rel="noreferrer"
+              className="node-tooltip-link"
+              style={{
+                display: 'inline-block',
+                color: '#050510',
+                background: COLORS[tooltip.node.category] || '#fff',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                textDecoration: 'none',
+                fontWeight: 'bold'
+              }}
+            >
+              Visit Website ↗
+            </a>
+          )}
         </div>
       )}
     </div>
