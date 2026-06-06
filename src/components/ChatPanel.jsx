@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import VoiceSelector from './VoiceSelector.jsx';
 // import VoiceModeDebug from './VoiceModeDebug.jsx';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
@@ -109,7 +108,7 @@ export default function ChatPanel({ messages, onSend, isLoading }) {
   const [playingMessageId, setPlayingMessageId] = useState(null);
   const [usedVoiceInput, setUsedVoiceInput] = useState(false);
   const [localMessages, setMessages] = useState(messages);
-  const [selectedVoice, setSelectedVoice] = useState('EXAVITQu4vr4xnSDxMaL'); // Sarah default
+  const selectedVoice = 'EXAVITQu4vr4xnSDxMaL'; // Sarah
   const listRef = useRef(null);
   const recognRef = useRef(null);
   const textareaRef = useRef(null);
@@ -315,7 +314,7 @@ export default function ChatPanel({ messages, onSend, isLoading }) {
           },
           body: JSON.stringify({
             text: message.content,
-            model_id: 'eleven_turbo_v2_5',
+            model_id: 'eleven_multilingual_v2',
             voice_settings: {
               stability: 0.5,
               similarity_boost: 0.75,
@@ -390,20 +389,12 @@ export default function ChatPanel({ messages, onSend, isLoading }) {
         console.error('❌ No TTS available');
       }
     }
-  }, [playingMessageId, selectedVoice]);
+  }, [playingMessageId]);
 
   const showTyping = isLoading && (localMessages.length === 0 || !localMessages[localMessages.length - 1]?.streaming);
 
   return (
     <section className="chat-panel">
-      {/* Voice Selector */}
-      <div className="chat-panel-header">
-        <VoiceSelector
-          currentVoice={selectedVoice}
-          onVoiceChange={setSelectedVoice}
-        />
-      </div>
-
       {/* Message list */}
       <div className="messages-list" ref={listRef}>
         {localMessages.map((msg, i) => (

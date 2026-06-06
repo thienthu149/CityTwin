@@ -13,7 +13,7 @@ const DEMO_DATA = {
     message:
       'Soy estudiante en Madrid y estoy pensando en ir a Hong Kong. ¿Qué becas hay para estudiantes europeos? También me gustaría encontrar comunidad hispanohablante y hacer voluntariado.',
     response:
-      `¡Bienvenida, Sofia! Hong Kong has exactly what you're looking for — and your community is already here waiting. Your constellation is building on the right →`,
+      `¡Bienvenida, Sofia! Hong Kong tiene exactamente lo que buscas — y tu comunidad ya está aquí esperándote. Tu constelación se está construyendo a la derecha →`,
     nodes: [
       { name: 'HKU Scholarships for European Students', category: 'scholarship', reason: 'European students eligible for merit awards up to HKD 120K/year' },
       { name: 'HKUST Global Scholarships', category: 'scholarship', reason: 'International merit scholarship for science & engineering students' },
@@ -31,7 +31,7 @@ const DEMO_DATA = {
     message:
       'Ich bin seit einem Monat in Hongkong. Ich habe eine Idee im Bereich KI und suche nach Finanzierung. Ich kenne kaum jemanden hier und möchte andere internationale Gründer treffen, besonders in der AI-Szene.',
     response:
-      `Herzlich willkommen, Lena! One month in and already building in AI — you're exactly what this city rewards. Watch your map light up →`,
+      `Herzlich willkommen, Lena! Einen Monat hier und schon dabei, etwas im KI-Bereich aufzubauen — genau das belohnt diese Stadt. Deine Karte leuchtet jetzt auf →`,
     nodes: [
       { name: 'Cyberport Incubation Programme', category: 'funding', reason: 'Incubation up to HKD 500K + free office space, built specifically for AI startups' },
       { name: 'HKSTP Incubation Programme', category: 'funding', reason: 'Deep tech incubation with R&D capabilities — ideal for serious AI projects' },
