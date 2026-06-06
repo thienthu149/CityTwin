@@ -13,7 +13,7 @@ const DEMO_DATA = {
     message:
       'Soy estudiante en Madrid y estoy pensando en ir a Hong Kong. ¿Qué becas hay para estudiantes europeos? También me gustaría encontrar comunidad hispanohablante y hacer voluntariado.',
     response:
-      `¡Bienvenida, Sofia! Your curiosity about Hong Kong is exactly the energy this city needs. As a European student, you'll find both generous scholarships and a warm Spanish-speaking community already waiting for you here. Let me build your Hong Kong constellation.`,
+      `¡Bienvenida, Sofia! Hong Kong tiene exactamente lo que buscas — y tu comunidad ya está aquí esperándote. Tu constelación se está construyendo a la derecha →`,
     nodes: [
       { name: 'HKU Scholarships for European Students', category: 'scholarship', reason: 'European students eligible for merit awards up to HKD 120K/year' },
       { name: 'HKUST Global Scholarships', category: 'scholarship', reason: 'International merit scholarship for science & engineering students' },
@@ -31,7 +31,7 @@ const DEMO_DATA = {
     message:
       'Ich bin seit einem Monat in Hongkong. Ich habe eine Idee im Bereich KI und suche nach Finanzierung. Ich kenne kaum jemanden hier und möchte andere internationale Gründer treffen, besonders in der AI-Szene.',
     response:
-      `Herzlich willkommen, Lena! One month in and already building in AI — you're exactly the talent Hong Kong wants to keep. The ecosystem here has world-class funding for AI founders and a vibrant international community ready to support you. Let's map your path.`,
+      `Herzlich willkommen, Lena! Einen Monat hier und schon dabei, etwas im KI-Bereich aufzubauen — genau das belohnt diese Stadt. Deine Karte leuchtet jetzt auf →`,
     nodes: [
       { name: 'Cyberport Incubation Programme', category: 'funding', reason: 'Incubation up to HKD 500K + free office space, built specifically for AI startups' },
       { name: 'HKSTP Incubation Programme', category: 'funding', reason: 'Deep tech incubation with R&D capabilities — ideal for serious AI projects' },
@@ -50,7 +50,7 @@ const DEMO_DATA = {
     message:
       `I am an AI researcher, just graduated from India. I want to start a company in Hong Kong but I don\'t know where to begin. I don\'t know anyone here and I\'m not sure if my research background is relevant for building a startup.`,
     response:
-      `Welcome to Hong Kong, Priya! Your AI research background is not just relevant — it\'s exactly what this city\'s innovation ecosystem is actively looking for. Research-to-company paths are well-supported here, and you won\'t be starting from zero for long. Here\'s your constellation.`,
+      `Welcome, Priya! Your research background is a genuine advantage here — HK's ecosystem is built for exactly your profile. Your constellation is on the right →`,
     nodes: [
       { name: 'HKSTP AI Lab', category: 'education', reason: 'Research-to-market programme built for academics going commercial — perfect for you' },
       { name: 'InnoHK Research Clusters', category: 'education', reason: '28 R&D centres bridging research and commercialisation across HK' },
