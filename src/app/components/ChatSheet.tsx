@@ -144,29 +144,61 @@ export function ChatSheet({ onClose, onNodesUpdate }: ChatSheetProps) {
     handleSend(prompt);
   };
 
-  const toggleRecording = () => {
-    setIsRecording(!isRecording);
-    if (!isRecording) {
-      setTimeout(() => {
-        const voiceMessage: Message = {
-          id: Date.now().toString(),
-          text: "I'm planning to go to Hong Kong and want to explore entrepreneurship opportunities there.",
-          sender: 'user',
-        };
-        setMessages((prev) => [...prev, voiceMessage]);
-        setIsRecording(false);
-        setIsTyping(true);
+  // Voice input using Groq Whisper API
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const [transcribing, setTranscribing] = useState(false);
 
-        setTimeout(() => {
-          setIsTyping(false);
-          const aiResponse: Message = {
-            id: (Date.now() + 1).toString(),
-            text: "Excellent choice! Hong Kong has a vibrant startup ecosystem. I've updated the constellation with opportunities in entrepreneurship, grants, and community events!",
-            sender: 'ai',
-          };
-          setMessages((prev) => [...prev, aiResponse]);
-        }, 1500);
-      }, 2500);
+  const toggleRecording = async () => {
+    if (isRecording) {
+      // Stop recording
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+
+    // Start recording
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setIsRecording(true);
+      chunksRef.current = [];
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        setIsRecording(false);
+
+        if (!chunksRef.current.length) return;
+
+        setTranscribing(true);
+        try {
+          const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+          const formData = new FormData();
+          formData.append('audio', blob, 'recording.webm');
+
+          const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
+          const data = await res.json();
+
+          if (data.text?.trim()) {
+            handleSend(data.text.trim());
+          }
+        } catch (err) {
+          console.error('Transcription error:', err);
+        } finally {
+          setTranscribing(false);
+        }
+      };
+
+      mediaRecorder.start();
+    } catch (err) {
+      console.error('Microphone error:', err);
+      alert('Could not access microphone. Please allow microphone permissions.');
+      setIsRecording(false);
     }
   };
 
