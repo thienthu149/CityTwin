@@ -8,8 +8,16 @@ interface Message {
   sender: 'user' | 'ai';
 }
 
+interface OpportunityNode {
+  id: string;
+  name: string;
+  category: string;
+  reason: string;
+}
+
 interface ChatSheetProps {
   onClose: () => void;
+  onNodesUpdate: (nodes: OpportunityNode[]) => void;
 }
 
 const quickPrompts = [
@@ -18,22 +26,23 @@ const quickPrompts = [
   { icon: Sparkles, text: 'Scholarships', prompt: 'What scholarships are available?' },
 ];
 
-export function ChatSheet({ onClose }: ChatSheetProps) {
+export function ChatSheet({ onClose, onNodesUpdate }: ChatSheetProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Hello! I'm your Digital Twin - your AI companion for discovering opportunities worldwide. I can help you explore programs, events, and experiences tailored to your goals. Where would you like to begin?",
+      text: "Welcome to City Twin. ◉\n\nI'm your personal guide to Hong Kong — connecting you to the opportunities, communities, and people that will help you thrive here.\n\nTell me about yourself. Where are you from? What brought you to Hong Kong — or what's making you consider it? Speak in any language.",
       sender: 'ai',
     },
   ]);
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleSend = (text?: string) => {
+  const handleSend = async (text?: string) => {
     const messageText = text || input.trim();
-    if (!messageText) return;
+    if (!messageText || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -43,17 +52,92 @@ export function ChatSheet({ onClose }: ChatSheetProps) {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
+    setIsLoading(true);
     setIsTyping(true);
 
-    setTimeout(() => {
+    try {
+      const history = messages
+        .filter(m => m.sender !== 'ai' || m.id !== '1')
+        .map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }));
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: messageText, history }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullText = '';
+
+      const assistantId = `assistant-${Date.now()}`;
+      setMessages(prev => [...prev, { id: assistantId, text: '', sender: 'ai' }]);
       setIsTyping(false);
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        text: "Great! I'm analyzing opportunities in that area. Check out the constellation visualization and timeline for personalized recommendations!",
-        sender: 'ai',
-      };
-      setMessages((prev) => [...prev, aiResponse]);
-    }, 1500);
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const raw = line.slice(6).trim();
+            if (raw === '[DONE]') break;
+
+            try {
+              const parsed = JSON.parse(raw);
+              if (parsed.error) throw new Error(parsed.error);
+              if (parsed.text) {
+                fullText += parsed.text;
+                const display = fullText.split('NODES:')[0].trimEnd();
+                setMessages(prev =>
+                  prev.map(m => (m.id === assistantId ? { ...m, text: display } : m))
+                );
+              }
+            } catch (e) {
+              // Ignore JSON parse errors
+            }
+          }
+        }
+      }
+
+      // Extract nodes
+      const match = fullText.match(/NODES:\s*(\[[\s\S]*?\])\s*$/);
+      if (match) {
+        try {
+          const extracted = JSON.parse(match[1]);
+          const nodesWithIds = extracted.map((node: any, i: number) => ({
+            ...node,
+            id: `${Date.now()}-${i}`,
+          }));
+          onNodesUpdate(nodesWithIds);
+        } catch {
+          // Ignore malformed JSON
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `error-${Date.now()}`,
+          text: '⚠ Connection error. Please try again.',
+          sender: 'ai',
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+      setIsTyping(false);
+    }
   };
 
   const handleQuickPrompt = (prompt: string) => {

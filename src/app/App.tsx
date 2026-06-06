@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { ChatSheet } from './components/ChatSheet';
 import { NeuralNetwork } from './components/NeuralNetwork';
 import { OpportunityTimeline } from './components/OpportunityTimeline';
@@ -6,9 +6,26 @@ import { CityTwinLogo } from './components/CityTwinLogo';
 import { MessageCircle, Network, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+interface OpportunityNode {
+  id: string;
+  name: string;
+  category: string;
+  reason: string;
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<'network' | 'timeline'>('network');
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [nodes, setNodes] = useState<OpportunityNode[]>([]);
+
+  const handleNodesUpdate = useCallback((newNodes: OpportunityNode[]) => {
+    setNodes(prev => {
+      // Add new nodes without duplicates
+      const existingNames = new Set(prev.map(n => n.name));
+      const uniqueNewNodes = newNodes.filter(n => !existingNames.has(n.name));
+      return [...prev, ...uniqueNewNodes];
+    });
+  }, []);
 
   return (
     <div className="size-full flex flex-col bg-[#0a0e27]">
@@ -17,7 +34,7 @@ export default function App() {
       </header>
 
       <div className="flex-1 overflow-hidden relative">
-        {activeTab === 'network' && <NeuralNetwork />}
+        {activeTab === 'network' && <NeuralNetwork nodes={nodes} />}
         {activeTab === 'timeline' && <OpportunityTimeline />}
 
         <AnimatePresence>
@@ -30,7 +47,7 @@ export default function App() {
                 className="absolute inset-0 bg-black/20 backdrop-blur-sm"
                 onClick={() => setIsChatOpen(false)}
               />
-              <ChatSheet onClose={() => setIsChatOpen(false)} />
+              <ChatSheet onClose={() => setIsChatOpen(false)} onNodesUpdate={handleNodesUpdate} />
             </>
           )}
         </AnimatePresence>
