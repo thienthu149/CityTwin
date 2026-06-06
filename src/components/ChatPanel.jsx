@@ -101,6 +101,7 @@ function TypingIndicator() {
   );
 }
 
+
 // ── Chat Panel ───────────────────────────────────────────────────────────────
 export default function ChatPanel({ messages, onSend, isLoading }) {
   const [text, setText] = useState('');
@@ -109,8 +110,10 @@ export default function ChatPanel({ messages, onSend, isLoading }) {
   const [usedVoiceInput, setUsedVoiceInput] = useState(false);
   const [localMessages, setMessages] = useState(messages);
   const selectedVoice = 'EXAVITQu4vr4xnSDxMaL'; // Sarah
+  const [transcribing, setTranscribing] = useState(false);
   const listRef = useRef(null);
-  const recognRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
   const textareaRef = useRef(null);
   const audioRef = useRef(null);
   const previousMessagesLength = useRef(messages.length);
@@ -202,63 +205,54 @@ export default function ChatPanel({ messages, onSend, isLoading }) {
     }
   };
 
-  // ── Voice input (Web Speech API) ────────────────────────────────────────────
-  const startListening = useCallback(() => {
+  // ── Voice input (Groq Whisper) ──────────────────────────────────────────────
+  const startListening = useCallback(async () => {
     if (listening) {
-      recognRef.current?.stop();
+      mediaRecorderRef.current?.stop();
       return;
     }
 
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-      alert('Voice input not supported in this browser. Please use Chrome or Edge.');
-      return;
-    }
-
-    const recog = new SR();
-    recog.continuous = false;
-    recog.interimResults = true;
-    recog.lang = '';
-
-    let finalText = '';
-
-    recog.onstart = () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setListening(true);
-      setText('');
-    };
+      chunksRef.current = [];
 
-    recog.onresult = (e) => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          finalText += e.results[i][0].transcript + ' ';
-        } else {
-          interim += e.results[i][0].transcript;
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        setListening(false);
+        if (chunksRef.current.length === 0) return;
+
+        setTranscribing(true);
+        try {
+          const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+          const formData = new FormData();
+          formData.append('audio', blob, 'recording.webm');
+          const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (data.text?.trim()) {
+            setUsedVoiceInput(true);
+            onSend(data.text.trim());
+          }
+        } catch (err) {
+          console.error('Transcription error:', err);
+        } finally {
+          setTranscribing(false);
         }
-      }
-      setText((finalText + interim).trim());
-    };
+      };
 
-    recog.onend = () => {
+      mediaRecorder.start();
+    } catch (err) {
+      console.error('Microphone error:', err);
+      alert('Could not access microphone. Please allow microphone permissions and try again.');
       setListening(false);
-      const val = finalText.trim();
-      if (val) {
-        console.log('🎤 Voice input received:', val);
-        setUsedVoiceInput(true); // Mark as voice input to trigger voice response
-        console.log('🎤 usedVoiceInput set to TRUE');
-        onSend(val);
-        setText('');
-      }
-    };
-
-    recog.onerror = (e) => {
-      console.error('Speech error:', e.error);
-      setListening(false);
-      setText('');
-    };
-
-    recog.start();
-    recognRef.current = recog;
+    }
   }, [listening, onSend]);
 
   // ── Text-to-Speech with ElevenLabs ──────────────────────────────────────────
@@ -423,19 +417,19 @@ export default function ChatPanel({ messages, onSend, isLoading }) {
           <button
             className={`voice-btn-inline ${listening ? 'listening' : ''} ${usedVoiceInput ? 'voice-mode' : ''}`}
             onClick={startListening}
-            disabled={isLoading && !listening}
-            title={listening ? 'Stop listening' : usedVoiceInput ? 'Continue voice conversation' : 'Voice input'}
+            disabled={(isLoading || transcribing) && !listening}
+            title={listening ? 'Stop recording' : usedVoiceInput ? 'Continue voice conversation' : 'Voice input'}
           >
             <MicIcon />
           </button>
           <textarea
             ref={textareaRef}
             className="chat-textarea"
-            placeholder={listening ? 'Listening...' : usedVoiceInput ? 'Or type to exit voice mode...' : 'Ask about Hong Kong opportunities...'}
+            placeholder={listening ? 'Recording... click mic to stop' : transcribing ? 'Transcribing...' : usedVoiceInput ? 'Or type to exit voice mode...' : 'Ask about Hong Kong opportunities...'}
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={handleKey}
-            disabled={isLoading || listening}
+            disabled={isLoading || listening || transcribing}
             rows={1}
           />
           <button
@@ -450,7 +444,12 @@ export default function ChatPanel({ messages, onSend, isLoading }) {
         {listening && (
           <div className="listening-indicator">
             <div className="pulse-ring" />
-            <span>Listening...</span>
+            <span>Recording... click mic to stop</span>
+          </div>
+        )}
+        {transcribing && (
+          <div className="listening-indicator">
+            <span>Transcribing your voice...</span>
           </div>
         )}
       </div>
