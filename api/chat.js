@@ -28,7 +28,32 @@ function buildCatalog(db) {
   return lines.join('\n');
 }
 
-const CATALOG = buildCatalog(db);
+function buildCatalogFromDB(db) {
+  const eco = db.hong_kong_ecosystem;
+  const lines = ['HONG KONG ECOSYSTEM CATALOG\nUse ONLY resources from this list. Copy their names exactly.\n'];
+  
+  const sections = [
+    { key: 'funding', label: 'FUNDING (use category: "funding")' },
+    { key: 'education', label: 'SCHOLARSHIPS & EDUCATION (use category: "scholarship" or "education")' },
+    { key: 'expats', label: 'NATIONALITY COMMUNITIES (use category: "community")' },
+    { key: 'founders', label: 'ENTREPRENEURSHIP COMMUNITIES (use category: "community")' },
+    { key: 'study', label: 'STUDENT COMMUNITIES (use category: "education")' },
+    { key: 'social', label: 'SOCIAL INTEGRATION (use category: "social")' },
+  ];
+  
+  for (const { key, label } of sections) {
+    if (eco[key]) {
+      lines.push(label + ':');
+      for (const item of eco[key]) {
+        lines.push(`• ${item.name} — ${item.details}`);
+      }
+      lines.push('');
+    }
+  }
+  return lines.join('\n');
+}
+
+const CATALOG = buildCatalogFromDB(db);
 
 const SYSTEM_PROMPT = `You are City Twin — a warm, human guide to Hong Kong.
 

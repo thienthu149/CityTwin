@@ -11,6 +11,17 @@ interface Node {
   children?: Array<{ id: string; label: string; description: string }>;
 }
 
+interface OpportunityNode {
+  id: string;
+  name: string;
+  category: string;
+  reason: string;
+}
+
+interface NeuralNetworkProps {
+  nodes: OpportunityNode[];
+}
+
 // Arrange nodes in a Bauhinia flower pattern (Hong Kong flag)
 // 5 petals arranged in a circle, like the flower on HK flag
 const centerX = 50;
@@ -108,13 +119,47 @@ const mainNodes: Node[] = [
   }),
 ];
 
-export function NeuralNetwork() {
+const categoryColors: Record<string, string> = {
+  funding: '#f59e0b',
+  scholarship: '#10b981',
+  community: '#ec4899',
+  education: '#3b82f6',
+  social: '#06b6d4',
+  event: '#8b5cf6',
+};
+
+export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [selectedChild, setSelectedChild] = useState<{ parentId: string; child: { id: string; label: string; description: string } } | null>(null);
   const [showFullDetails, setShowFullDetails] = useState(false);
   const [nodePositions, setNodePositions] = useState(mainNodes);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dynamicNodes, setDynamicNodes] = useState<Node[]>([]);
+
+  // Convert opportunity nodes to visual nodes
+  useEffect(() => {
+    if (nodes.length === 0) return;
+
+    const newDynamicNodes: Node[] = nodes.map((oppNode, index) => {
+      const angle = (index * (360 / Math.max(nodes.length, 6)) - 90) * (Math.PI / 180);
+      const radius = 30 + (index % 2) * 5; // Vary radius slightly
+      return {
+        id: oppNode.id,
+        label: oppNode.name,
+        x: centerX + Math.cos(angle) * radius,
+        y: centerY + Math.sin(angle) * radius,
+        color: categoryColors[oppNode.category] || '#8b5cf6',
+        children: [{
+          id: `${oppNode.id}-detail`,
+          label: oppNode.name,
+          description: oppNode.reason,
+        }],
+      };
+    });
+
+    setDynamicNodes(newDynamicNodes);
+  }, [nodes]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -238,6 +283,7 @@ export function NeuralNetwork() {
             transition={{ type: 'spring', stiffness: 100, damping: 20 }}
           >
 
+          {/* Lines from center to static nodes */}
           {nodePositions.map((node) => {
             if (node.isCenter) return null;
             return (
@@ -258,6 +304,25 @@ export function NeuralNetwork() {
             );
           })}
 
+          {/* Lines from center to dynamic nodes */}
+          {dynamicNodes.map((node, index) => (
+            <motion.line
+              key={`dyn-line-${node.id}`}
+              x1={centerNode.x}
+              y1={centerNode.y}
+              x2={node.x}
+              y2={node.y}
+              stroke={node.color}
+              strokeWidth="0.3"
+              opacity="0.5"
+              strokeDasharray="1,1"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.5 }}
+              transition={{ duration: 1, delay: index * 0.15, ease: 'easeOut' }}
+            />
+          ))}
+
+          {/* Static nodes */}
           {nodePositions.map((node) => (
             <motion.g
               key={node.id}
@@ -430,6 +495,97 @@ export function NeuralNetwork() {
               )}
             </motion.g>
           ))}
+
+          {/* Dynamic nodes from Claude */}
+          <AnimatePresence>
+            {dynamicNodes.map((node, index) => (
+              <motion.g
+                key={`dyn-${node.id}`}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1, x: node.x, y: node.y }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 120,
+                  damping: 15,
+                  delay: index * 0.1,
+                }}
+                style={{ cursor: 'pointer' }}
+                onClick={() => handleNodeClick(node.id)}
+              >
+                {/* Outer glow */}
+                <motion.circle
+                  cx="0"
+                  cy="0"
+                  r="7"
+                  fill="url(#starGlow)"
+                  opacity="0.5"
+                  filter="url(#glow)"
+                  animate={{
+                    scale: [1, 1.2, 1],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                  }}
+                />
+                {/* Main star body - larger for dynamic nodes */}
+                <motion.circle
+                  cx="0"
+                  cy="0"
+                  r="3.5"
+                  fill={node.color}
+                  filter="url(#glow)"
+                  whileHover={{ scale: 1.3 }}
+                  animate={{
+                    opacity: [0.9, 1, 0.9],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                />
+                {/* Star sparkle points */}
+                {Array.from({ length: 4 }).map((_, i) => {
+                  const angle = (i * 90) * (Math.PI / 180);
+                  const x = Math.cos(angle) * 5;
+                  const y = Math.sin(angle) * 5;
+                  return (
+                    <motion.line
+                      key={i}
+                      x1="0"
+                      y1="0"
+                      x2={x}
+                      y2={y}
+                      stroke={node.color}
+                      strokeWidth="0.4"
+                      opacity="0.7"
+                      filter="url(#glow)"
+                    />
+                  );
+                })}
+                {/* Label */}
+                {(() => {
+                  const angleFromCenter = Math.atan2(node.y - centerNode.y, node.x - centerNode.x);
+                  const textDistance = 10;
+                  const textX = Math.cos(angleFromCenter) * textDistance;
+                  const textY = Math.sin(angleFromCenter) * textDistance;
+                  return (
+                    <text
+                      x={textX}
+                      y={textY}
+                      textAnchor="middle"
+                      className="fill-white pointer-events-none"
+                      style={{ fontSize: '2px', fontWeight: '600' }}
+                    >
+                      {node.label.length > 25 ? node.label.substring(0, 22) + '...' : node.label}
+                    </text>
+                  );
+                })()}
+              </motion.g>
+            ))}
+          </AnimatePresence>
 
           <AnimatePresence>
             {nodePositions.map((node) => {
