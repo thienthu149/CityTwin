@@ -2,8 +2,37 @@ import express from 'express';
 import cors from 'cors';
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from 'dotenv';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
 config();
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const db = JSON.parse(readFileSync(join(__dirname, 'database.json'), 'utf-8'));
+
+function buildCatalog(db) {
+  const eco = db.hong_kong_ecosystem;
+  const sections = [
+    { key: 'funding', label: 'FUNDING (use category: "funding")' },
+    { key: 'scholarships_and_education', label: 'SCHOLARSHIPS & EDUCATION (use category: "scholarship")' },
+    { key: 'communities_by_nationality', label: 'NATIONALITY COMMUNITIES (use category: "community")' },
+    { key: 'entrepreneurship_communities', label: 'ENTREPRENEURSHIP COMMUNITIES (use category: "community")' },
+    { key: 'student_communities', label: 'STUDENT COMMUNITIES (use category: "education")' },
+    { key: 'real_social_integration', label: 'SOCIAL INTEGRATION (use category: "social")' },
+  ];
+  const lines = ['HONG KONG ECOSYSTEM CATALOG\nUse ONLY resources from this list. Copy their names exactly.\n'];
+  for (const { key, label } of sections) {
+    lines.push(label + ':');
+    for (const item of eco[key]) {
+      lines.push(`• ${item.name} — ${item.details}`);
+    }
+    lines.push('');
+  }
+  return lines.join('\n');
+}
+
+const CATALOG = buildCatalog(db);
 
 const app = express();
 app.use(cors());
@@ -25,12 +54,12 @@ NODES:
 
 Rules for nodes:
 - Generate exactly 5-8 nodes tailored to THIS specific person's profile
-- Only real Hong Kong organisations (Cyberport, HKSTP, HKU, Spanish Chamber HK, etc.)
+- You MUST use exact names from the CATALOG below — do not invent names
 - Categories must be one of: funding, scholarship, community, education, social, event
 - Each reason must be specific to why it fits this person — never generic
 - The JSON must be on a single line after NODES:
 
-Example node: {"name":"Cyberport","category":"funding","reason":"Incubation up to HKD 500K + free office space, ideal for your AI startup idea"}`;
+${CATALOG}`;
 
 app.post('/api/chat', async (req, res) => {
   const { message, history = [], apiKey } = req.body;
