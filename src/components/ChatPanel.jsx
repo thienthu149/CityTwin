@@ -38,24 +38,44 @@ const ChevronDownIcon = () => (
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 
+function BauhiniaFlower({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {Array.from({ length: 5 }).map((_, i) => {
+        const angle = (i * 72 - 90) * (Math.PI / 180);
+        const petalLength = 8;
+        const petalWidth = 4;
+        const x1 = 12 + Math.cos(angle) * 1.5;
+        const y1 = 12 + Math.sin(angle) * 1.5;
+        const x2 = 12 + Math.cos(angle) * petalLength;
+        const y2 = 12 + Math.sin(angle) * petalLength;
+        const perpAngle = angle + Math.PI / 2;
+        const wx = Math.cos(perpAngle) * petalWidth;
+        const wy = Math.sin(perpAngle) * petalWidth;
+        return (
+          <g key={i}>
+            <path
+              d={`M ${x1} ${y1} Q ${x2 + wx} ${y2 + wy} ${x2} ${y2} Q ${x2 - wx} ${y2 - wy} ${x1} ${y1}`}
+              fill="white"
+              opacity="0.95"
+            />
+            <circle
+              cx={12 + Math.cos(angle) * 5.5}
+              cy={12 + Math.sin(angle) * 5.5}
+              r="0.8"
+              fill="#de1e3d"
+            />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 function TwinAvatar({ size = 34 }) {
-  const iR = size * 0.38;
   return (
     <div className="msg-avatar" style={{ width: size, height: size }}>
-      <svg width={iR * 2} height={iR * 2} viewBox={`0 0 ${iR * 2} ${iR * 2}`}>
-        {[0,1,2,3,4,5].map(i => {
-          const a = (i * Math.PI) / 3;
-          return (
-            <line
-              key={i}
-              x1={iR} y1={iR}
-              x2={iR + Math.cos(a) * iR * 0.85}
-              y2={iR + Math.sin(a) * iR * 0.85}
-              stroke="white" strokeWidth="2" strokeLinecap="round"
-            />
-          );
-        })}
-      </svg>
+      <BauhiniaFlower size={size * 0.62} />
     </div>
   );
 }
@@ -285,12 +305,7 @@ export default function ChatPanel({ messages, onSend, isLoading, onClose, initia
       {/* Your Digital Twin card */}
       <div className="twin-card">
         <div className="twin-avatar">
-          <svg width="22" height="22" viewBox="0 0 24 24">
-            {[0,1,2,3,4,5].map(i => {
-              const a = (i * Math.PI) / 3;
-              return <line key={i} x1="12" y1="12" x2={12 + Math.cos(a) * 9} y2={12 + Math.sin(a) * 9} stroke="white" strokeWidth="2.2" strokeLinecap="round"/>;
-            })}
-          </svg>
+          <BauhiniaFlower size={26} />
         </div>
         <div className="twin-text">
           <span className="twin-title">Your Digital Twin</span>
