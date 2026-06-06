@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-// import VoiceModeDebug from './VoiceModeDebug.jsx';
 
-// ── Icons ────────────────────────────────────────────────────────────────────
+// ── Icons ─────────────────────────────────────────────────────────────────────
+
 const SendIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
@@ -9,7 +9,7 @@ const SendIcon = () => (
 );
 
 const MicIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
     <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
     <line x1="12" y1="19" x2="12" y2="23"/>
@@ -18,377 +18,304 @@ const MicIcon = () => (
 );
 
 const SpeakerIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
     <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
   </svg>
 );
 
 const StopIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/>
   </svg>
 );
 
-// ── Single message bubble ────────────────────────────────────────────────────
-function Message({ msg, onPlayAudio, playingMessageId, isVoiceMode }) {
-  const cls = [
-    'message',
-    msg.role,
-    msg.isIntro ? 'intro' : '',
-    msg.isError ? 'error' : '',
-  ].filter(Boolean).join(' ');
+const ChevronDownIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9"/>
+  </svg>
+);
 
+// ── Avatar ────────────────────────────────────────────────────────────────────
+
+function TwinAvatar({ size = 34 }) {
+  const iR = size * 0.38;
+  return (
+    <div className="msg-avatar" style={{ width: size, height: size }}>
+      <svg width={iR * 2} height={iR * 2} viewBox={`0 0 ${iR * 2} ${iR * 2}`}>
+        {[0,1,2,3,4,5].map(i => {
+          const a = (i * Math.PI) / 3;
+          return (
+            <line
+              key={i}
+              x1={iR} y1={iR}
+              x2={iR + Math.cos(a) * iR * 0.85}
+              y2={iR + Math.sin(a) * iR * 0.85}
+              stroke="white" strokeWidth="2" strokeLinecap="round"
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+// ── Quick prompts ─────────────────────────────────────────────────────────────
+
+const QUICK_PROMPTS = [
+  { icon: '🌐', label: 'Explore Hong Kong' },
+  { icon: '⚡', label: 'Startup Programs' },
+  { icon: '✨', label: 'Scholarships' },
+];
+
+// ── Message bubble ────────────────────────────────────────────────────────────
+
+function Message({ msg, onPlayAudio, playingMessageId }) {
   const isPlaying = playingMessageId === msg.id;
 
-  // In voice mode, show speaking indicator instead of text for AI responses
-  if (msg.role === 'assistant' && msg.voiceOnly && !msg.isIntro) {
-    return (
-      <div className={cls}>
-        <div className="message-header">
-          <span className="message-role">City Twin AI</span>
-        </div>
-        <div className="voice-response-indicator">
-          <div className="voice-wave">
-            <div className="wave-bar"></div>
-            <div className="wave-bar"></div>
-            <div className="wave-bar"></div>
-            <div className="wave-bar"></div>
-            <div className="wave-bar"></div>
+  if (msg.role === 'assistant') {
+    if (msg.voiceOnly && !msg.isIntro) {
+      return (
+        <div className="message assistant">
+          <div className="msg-ai-row">
+            <TwinAvatar />
+            <div className="voice-response-indicator">
+              <div className="voice-wave">
+                {[0,1,2,3,4].map(i => <div key={i} className="wave-bar" />)}
+              </div>
+              <span className="voice-status-text">
+                {msg.streaming ? 'Thinking…' : isPlaying ? 'Speaking…' : '✓ Voice response'}
+              </span>
+            </div>
           </div>
-          <span className="voice-status-text">
-            {msg.streaming ? 'Thinking...' : isPlaying ? 'Speaking...' : '✓ Voice response'}
-          </span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="message assistant">
+        <div className="msg-ai-row">
+          <TwinAvatar />
+          <div className="message-bubble">
+            {msg.content}
+            {msg.streaming && msg.content !== '' && <span className="streaming-cursor" />}
+            {!msg.isIntro && msg.content && !msg.voiceOnly && (
+              <div>
+                <button
+                  className={`play-audio-btn ${isPlaying ? 'playing' : ''}`}
+                  onClick={() => onPlayAudio(msg)}
+                  title={isPlaying ? 'Stop' : 'Listen'}
+                >
+                  {isPlaying ? <StopIcon /> : <SpeakerIcon />}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={cls}>
-      <div className="message-header">
-        <span className="message-role">{msg.role === 'user' ? 'You' : 'City Twin AI'}</span>
-        {msg.role === 'assistant' && !msg.isIntro && msg.content && !msg.voiceOnly && (
-          <button
-            className={`play-audio-btn ${isPlaying ? 'playing' : ''}`}
-            onClick={() => onPlayAudio(msg)}
-            title={isPlaying ? 'Stop' : 'Listen to response'}
-          >
-            {isPlaying ? <StopIcon /> : <SpeakerIcon />}
-          </button>
-        )}
-      </div>
-      <div className="message-bubble">
-        {msg.content}
-        {msg.streaming && msg.content !== '' && <span className="streaming-cursor" />}
-      </div>
+    <div className="message user">
+      <div className="message-bubble">{msg.content}</div>
     </div>
   );
 }
 
-// ── Typing indicator ─────────────────────────────────────────────────────────
 function TypingIndicator() {
   return (
     <div className="message assistant">
-      <span className="message-role">City Twin AI</span>
-      <div className="typing-indicator">
-        <div className="typing-dot" />
-        <div className="typing-dot" />
-        <div className="typing-dot" />
+      <div className="msg-ai-row">
+        <TwinAvatar />
+        <div className="typing-indicator">
+          <div className="typing-dot" />
+          <div className="typing-dot" />
+          <div className="typing-dot" />
+        </div>
       </div>
     </div>
   );
 }
 
+// ── Chat Panel ────────────────────────────────────────────────────────────────
 
-// ── Chat Panel ───────────────────────────────────────────────────────────────
-export default function ChatPanel({ messages, onSend, isLoading }) {
+export default function ChatPanel({ messages, onSend, isLoading, onClose, initialPrompt }) {
   const [text, setText] = useState('');
   const [listening, setListening] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState(null);
   const [usedVoiceInput, setUsedVoiceInput] = useState(false);
-  const [localMessages, setMessages] = useState(messages);
+  const [localMessages, setLocalMessages] = useState(messages);
+
   const selectedVoice = 'EXAVITQu4vr4xnSDxMaL'; // Sarah
-  const [transcribing, setTranscribing] = useState(false);
   const listRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const textareaRef = useRef(null);
   const audioRef = useRef(null);
-  const previousMessagesLength = useRef(messages.length);
+  const prevLenRef = useRef(messages.length);
 
-  // Sync messages from props
-  useEffect(() => {
-    setMessages(messages);
-  }, [messages]);
+  // Sync messages from parent
+  useEffect(() => { setLocalMessages(messages); }, [messages]);
 
-  // Debug: Log voice mode state changes
-  useEffect(() => {
-    console.log('🎤 Voice mode state:', usedVoiceInput ? 'ACTIVE' : 'INACTIVE');
-  }, [usedVoiceInput]);
+  // Pre-fill from constellation node tap
+  useEffect(() => { if (initialPrompt) setText(initialPrompt); }, [initialPrompt]);
 
-  // Auto-scroll on new messages
+  // Auto-scroll
   useEffect(() => {
-    const el = listRef.current;
-    if (el) {
-      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-    }
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
   }, [localMessages, isLoading]);
-
-  // Auto-play AI response if user used voice input
-  useEffect(() => {
-    if (messages.length > previousMessagesLength.current) {
-      const lastMessage = messages[messages.length - 1];
-
-      // If it's a new assistant message that's not streaming and user used voice
-      if (
-        lastMessage?.role === 'assistant' &&
-        !lastMessage.streaming &&
-        !lastMessage.isIntro &&
-        usedVoiceInput &&
-        lastMessage.content
-      ) {
-        console.log('🎤 Voice mode: Auto-playing AI response');
-
-        // Mark message as voice-only and auto-play the response
-        setMessages(prev =>
-          prev.map((m, i) =>
-            i === prev.length - 1 ? { ...m, voiceOnly: true } : m
-          )
-        );
-
-        // Auto-play after a short delay
-        const timer = setTimeout(() => {
-          console.log('🔊 Starting auto-play for message:', lastMessage.id);
-          playAudioResponse(lastMessage);
-          // Don't reset flag - keep voice mode active for next interaction
-        }, 500);
-
-        return () => clearTimeout(timer);
-      }
-    }
-    previousMessagesLength.current = messages.length;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, usedVoiceInput]);
 
   // Auto-resize textarea
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
     ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+    ta.style.height = Math.min(ta.scrollHeight, 110) + 'px';
   }, [text]);
+
+  // Auto-play AI response when voice was used
+  useEffect(() => {
+    if (messages.length <= prevLenRef.current) { prevLenRef.current = messages.length; return; }
+    const last = messages[messages.length - 1];
+    if (last?.role === 'assistant' && !last.streaming && !last.isIntro && usedVoiceInput && last.content) {
+      setLocalMessages(prev => prev.map((m, i) => i === prev.length - 1 ? { ...m, voiceOnly: true } : m));
+      const t = setTimeout(() => playAudioResponse(last), 500);
+      prevLenRef.current = messages.length;
+      return () => clearTimeout(t);
+    }
+    prevLenRef.current = messages.length;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, usedVoiceInput]);
 
   const submit = useCallback((fromVoice = false) => {
     const val = text.trim();
     if (!val || isLoading) return;
-    if (fromVoice) {
-      console.log('🎤 Submit via voice');
-      setUsedVoiceInput(true);
-    } else {
-      // User typed instead of speaking - exit voice mode
-      console.log('⌨️ Submit via text - exiting voice mode');
-      setUsedVoiceInput(false);
-    }
+    setUsedVoiceInput(fromVoice);
     onSend(val);
     setText('');
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
   }, [text, isLoading, onSend]);
 
   const handleKey = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      submit();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
   };
 
-  // ── Voice input (Groq Whisper) ──────────────────────────────────────────────
-  const startListening = useCallback(async () => {
-    if (listening) {
-      mediaRecorderRef.current?.stop();
-      return;
-    }
+  // ── Voice input (Groq Whisper) ────────────────────────────────────────────
 
+  const startListening = useCallback(async () => {
+    if (listening) { mediaRecorderRef.current?.stop(); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setListening(true);
       chunksRef.current = [];
-
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
-      mediaRecorder.onstop = async () => {
+      const mr = new MediaRecorder(stream);
+      mediaRecorderRef.current = mr;
+      mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
         setListening(false);
-        if (chunksRef.current.length === 0) return;
-
+        if (!chunksRef.current.length) return;
         setTranscribing(true);
         try {
           const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-          const formData = new FormData();
-          formData.append('audio', blob, 'recording.webm');
-          const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
+          const fd = new FormData();
+          fd.append('audio', blob, 'recording.webm');
+          const res = await fetch('/api/transcribe', { method: 'POST', body: fd });
           const data = await res.json();
-          if (data.text?.trim()) {
-            setUsedVoiceInput(true);
-            onSend(data.text.trim());
-          }
-        } catch (err) {
-          console.error('Transcription error:', err);
-        } finally {
-          setTranscribing(false);
-        }
+          if (data.text?.trim()) { setUsedVoiceInput(true); onSend(data.text.trim()); }
+        } catch (err) { console.error('Transcription error:', err); }
+        finally { setTranscribing(false); }
       };
-
-      mediaRecorder.start();
+      mr.start();
     } catch (err) {
       console.error('Microphone error:', err);
-      alert('Could not access microphone. Please allow microphone permissions and try again.');
+      alert('Could not access microphone. Please allow microphone permissions.');
       setListening(false);
     }
   }, [listening, onSend]);
 
-  // ── Text-to-Speech with ElevenLabs ──────────────────────────────────────────
-  const playAudioResponse = useCallback(async (message) => {
-    console.log('🎵 playAudioResponse called for message:', message.id);
+  // ── TTS via ElevenLabs ───────────────────────────────────────────────────
 
+  const playAudioResponse = useCallback(async (message) => {
     if (playingMessageId === message.id) {
-      // Stop current playback
-      console.log('⏹️ Stopping current playback');
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      audioRef.current?.pause();
+      audioRef.current = null;
       setPlayingMessageId(null);
       return;
     }
-
-    // Stop any existing audio
-    if (audioRef.current) {
-      console.log('⏹️ Stopping previous audio');
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
 
     try {
       setPlayingMessageId(message.id);
+      const KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
+      if (!KEY || KEY === 'demo' || KEY === 'your_elevenlabs_api_key_here') throw new Error('No API key');
 
-      // Use ElevenLabs API directly via fetch (no SDK needed for simple TTS)
-      const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
-      const VOICE_ID = selectedVoice; // User-selected voice
-
-      console.log('🔊 ElevenLabs config:', {
-        hasApiKey: !!ELEVENLABS_API_KEY,
-        apiKeyPrefix: ELEVENLABS_API_KEY?.substring(0, 8),
-        voiceId: VOICE_ID,
-        textLength: message.content.length
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${selectedVoice}`, {
+        method: 'POST',
+        headers: { 'Accept': 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': KEY },
+        body: JSON.stringify({ text: message.content, model_id: 'eleven_multilingual_v2', voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
       });
+      if (!res.ok) throw new Error(`ElevenLabs ${res.status}`);
 
-      if (!ELEVENLABS_API_KEY || ELEVENLABS_API_KEY === 'demo' || ELEVENLABS_API_KEY === 'your_elevenlabs_api_key_here') {
-        console.warn('⚠️ No valid ElevenLabs API key found, using browser TTS fallback');
-        throw new Error('No API key');
-      }
-
-      console.log('📡 Fetching audio from ElevenLabs...');
-      const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-        {
-          method: 'POST',
-          headers: {
-            'Accept': 'audio/mpeg',
-            'Content-Type': 'application/json',
-            'xi-api-key': ELEVENLABS_API_KEY,
-          },
-          body: JSON.stringify({
-            text: message.content,
-            model_id: 'eleven_multilingual_v2',
-            voice_settings: {
-              stability: 0.5,
-              similarity_boost: 0.75,
-            },
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ ElevenLabs API error:', response.status, errorText);
-
-        // Check if it's an authentication issue
-        if (response.status === 401) {
-          console.error('❌ Invalid API key - check your VITE_ELEVENLABS_API_KEY in .env');
-        } else if (response.status === 429) {
-          console.error('❌ Rate limit exceeded - too many requests');
-        } else if (response.status === 400) {
-          console.error('❌ Bad request - check voice ID and request format');
-        }
-
-        throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
-      }
-
-      console.log('✅ Audio received, creating blob...');
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-
-      console.log('🔊 Playing audio...');
-      const audio = new Audio(audioUrl);
+      const url = URL.createObjectURL(await res.blob());
+      const audio = new Audio(url);
       audioRef.current = audio;
-
-      audio.onended = () => {
-        console.log('✅ Audio playback finished');
-        setPlayingMessageId(null);
-        URL.revokeObjectURL(audioUrl);
-        audioRef.current = null;
-        // Keep voice mode active - user can click mic to continue
-      };
-
-      audio.onerror = (e) => {
-        console.error('❌ Audio playback error:', e);
-        setPlayingMessageId(null);
-        URL.revokeObjectURL(audioUrl);
-        audioRef.current = null;
-      };
-
+      audio.onended = () => { setPlayingMessageId(null); URL.revokeObjectURL(url); audioRef.current = null; };
+      audio.onerror = () => { setPlayingMessageId(null); URL.revokeObjectURL(url); audioRef.current = null; };
       await audio.play();
-      console.log('▶️ Audio playing started');
-    } catch (error) {
-      console.error('❌ Audio playback error:', error);
+    } catch {
       setPlayingMessageId(null);
-
-      // Fallback to browser TTS
-      console.log('🔄 Falling back to browser TTS...');
       if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(message.content);
-        utterance.lang = 'en-US';
-        utterance.rate = 0.9;
-        utterance.pitch = 1.0;
-        utterance.onend = () => {
-          console.log('✅ Browser TTS finished');
-          setPlayingMessageId(null);
-        };
-        utterance.onerror = (e) => {
-          console.error('❌ Browser TTS error:', e);
-          setPlayingMessageId(null);
-        };
-        speechSynthesis.speak(utterance);
-        console.log('▶️ Browser TTS started');
-      } else {
-        console.error('❌ No TTS available');
+        const utt = new SpeechSynthesisUtterance(message.content);
+        utt.lang = 'en-US'; utt.rate = 0.9;
+        utt.onend = () => setPlayingMessageId(null);
+        speechSynthesis.speak(utt);
       }
     }
   }, [playingMessageId]);
 
-  const showTyping = isLoading && (localMessages.length === 0 || !localMessages[localMessages.length - 1]?.streaming);
+  const onlyIntro = localMessages.length === 1 && localMessages[0]?.isIntro;
+  const showTyping = isLoading && (!localMessages.length || !localMessages[localMessages.length - 1]?.streaming);
 
   return (
     <section className="chat-panel">
+
+      {/* Your Digital Twin card */}
+      <div className="twin-card">
+        <div className="twin-avatar">
+          <svg width="22" height="22" viewBox="0 0 24 24">
+            {[0,1,2,3,4,5].map(i => {
+              const a = (i * Math.PI) / 3;
+              return <line key={i} x1="12" y1="12" x2={12 + Math.cos(a) * 9} y2={12 + Math.sin(a) * 9} stroke="white" strokeWidth="2.2" strokeLinecap="round"/>;
+            })}
+          </svg>
+        </div>
+        <div className="twin-text">
+          <span className="twin-title">Your Digital Twin</span>
+          <span className="twin-sub">AI-Powered Explorer</span>
+        </div>
+        <button className="twin-close" onClick={onClose} aria-label="Close chat">
+          <ChevronDownIcon />
+        </button>
+      </div>
+
+      {/* Quick prompts — only shown on fresh chat */}
+      {onlyIntro && (
+        <div className="quick-prompts">
+          <p className="quick-prompts-label">Try these quick prompts</p>
+          <div className="quick-chips">
+            {QUICK_PROMPTS.map(p => (
+              <button key={p.label} className="quick-chip" onClick={() => onSend(p.label)}>
+                <span>{p.icon}</span>
+                <span>{p.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Message list */}
       <div className="messages-list" ref={listRef}>
         {localMessages.map((msg, i) => (
@@ -397,7 +324,6 @@ export default function ChatPanel({ messages, onSend, isLoading }) {
             msg={msg}
             onPlayAudio={playAudioResponse}
             playingMessageId={playingMessageId}
-            isVoiceMode={usedVoiceInput}
           />
         ))}
         {showTyping && <TypingIndicator />}
@@ -407,59 +333,47 @@ export default function ChatPanel({ messages, onSend, isLoading }) {
       <div className="chat-input-area">
         {usedVoiceInput && !listening && (
           <div className="voice-mode-indicator">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="12" r="8"/>
-            </svg>
-            <span>Voice mode active - Click mic to continue conversation</span>
+            <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#ce93d8"/></svg>
+            <span>Voice mode — tap mic to continue</span>
           </div>
         )}
-        <div className="input-wrapper">
+        <div className="input-row">
           <button
-            className={`voice-btn-inline ${listening ? 'listening' : ''} ${usedVoiceInput ? 'voice-mode' : ''}`}
+            className={`voice-btn-inline ${listening ? 'listening' : ''}`}
             onClick={startListening}
             disabled={(isLoading || transcribing) && !listening}
-            title={listening ? 'Stop recording' : usedVoiceInput ? 'Continue voice conversation' : 'Voice input'}
+            title={listening ? 'Stop recording' : 'Voice input'}
           >
             <MicIcon />
           </button>
-          <textarea
-            ref={textareaRef}
-            className="chat-textarea"
-            placeholder={listening ? 'Recording... click mic to stop' : transcribing ? 'Transcribing...' : usedVoiceInput ? 'Or type to exit voice mode...' : 'Ask about Hong Kong opportunities...'}
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={handleKey}
-            disabled={isLoading || listening || transcribing}
-            rows={1}
-          />
-          <button
-            className="send-btn"
-            onClick={submit}
-            disabled={!text.trim() || isLoading}
-            title="Send message"
-          >
-            <SendIcon />
-          </button>
+          <div className="input-field-wrap">
+            <textarea
+              ref={textareaRef}
+              className="chat-textarea"
+              placeholder={listening ? 'Recording… tap mic to stop' : transcribing ? 'Transcribing…' : 'Ask me anything…'}
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={handleKey}
+              disabled={isLoading || listening || transcribing}
+              rows={1}
+            />
+            <button className="send-btn" onClick={() => submit(false)} disabled={!text.trim() || isLoading}>
+              <SendIcon />
+            </button>
+          </div>
         </div>
         {listening && (
           <div className="listening-indicator">
             <div className="pulse-ring" />
-            <span>Recording... click mic to stop</span>
+            <span>Recording… tap mic to stop</span>
           </div>
         )}
         {transcribing && (
           <div className="listening-indicator">
-            <span>Transcribing your voice...</span>
+            <span>Transcribing your voice…</span>
           </div>
         )}
       </div>
-
-      {/* Debug component - only shows in development */}
-      {/* <VoiceModeDebug
-        usedVoiceInput={usedVoiceInput}
-        playingMessageId={playingMessageId}
-        listening={listening}
-      /> */}
     </section>
   );
 }

@@ -1,19 +1,18 @@
 import { useState, useCallback } from 'react';
+import { MessageCircle, Network, Calendar } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import ChatPanel from './components/ChatPanel.jsx';
-import MapView from './components/MapView.jsx';
-import DemoProfiles from './components/DemoProfiles.jsx';
-import ElevenLabsTest from './components/ElevenLabsTest.jsx';
+import { NeuralNetwork } from './components/NeuralNetwork.tsx';
+import { OpportunityTimeline } from './components/OpportunityTimeline.tsx';
+import { CityTwinLogo } from './components/CityTwinLogo.tsx';
 
-// ── Demo data (hardcoded for stage backup) ──────────────────────────────────
+// ── Demo profiles ─────────────────────────────────────────────────────────────
 
 const DEMO_DATA = {
   sofia: {
     label: '🎓 Sofia',
-    lang: 'ES',
-    message:
-      'Soy estudiante en Madrid y estoy pensando en ir a Hong Kong. ¿Qué becas hay para estudiantes europeos? También me gustaría encontrar comunidad hispanohablante y hacer voluntariado.',
-    response:
-      `¡Bienvenida, Sofia! Hong Kong tiene exactamente lo que buscas — y tu comunidad ya está aquí esperándote. Tu constelación se está construyendo a la derecha →`,
+    message: 'Soy estudiante en Madrid y estoy pensando en ir a Hong Kong. ¿Qué becas hay para estudiantes europeos? También me gustaría encontrar comunidad hispanohablante y hacer voluntariado.',
+    response: '¡Bienvenida, Sofia! Hong Kong tiene exactamente lo que buscas — y tu comunidad ya está aquí esperándote.',
     nodes: [
       { name: 'HKU Scholarships for European Students', category: 'scholarship', reason: 'European students eligible for merit awards up to HKD 120K/year' },
       { name: 'HKUST Global Scholarships', category: 'scholarship', reason: 'International merit scholarship for science & engineering students' },
@@ -27,11 +26,8 @@ const DEMO_DATA = {
   },
   lena: {
     label: '🚀 Lena',
-    lang: 'DE',
-    message:
-      'Ich bin seit einem Monat in Hongkong. Ich habe eine Idee im Bereich KI und suche nach Finanzierung. Ich kenne kaum jemanden hier und möchte andere internationale Gründer treffen, besonders in der AI-Szene.',
-    response:
-      `Herzlich willkommen, Lena! Einen Monat hier und schon dabei, etwas im KI-Bereich aufzubauen — genau das belohnt diese Stadt. Deine Karte leuchtet jetzt auf →`,
+    message: 'Ich bin seit einem Monat in Hongkong. Ich habe eine Idee im Bereich KI und suche nach Finanzierung. Ich kenne kaum jemanden hier und möchte andere internationale Gründer treffen, besonders in der AI-Szene.',
+    response: 'Herzlich willkommen, Lena! Einen Monat hier und schon dabei, etwas im KI-Bereich aufzubauen — genau das belohnt diese Stadt.',
     nodes: [
       { name: 'Cyberport Incubation Programme', category: 'funding', reason: 'Incubation up to HKD 500K + free office space, built specifically for AI startups' },
       { name: 'HKSTP Incubation Programme', category: 'funding', reason: 'Deep tech incubation with R&D capabilities — ideal for serious AI projects' },
@@ -46,11 +42,8 @@ const DEMO_DATA = {
   },
   priya: {
     label: '🔬 Priya',
-    lang: 'EN',
-    message:
-      `I am an AI researcher, just graduated from India. I want to start a company in Hong Kong but I don\'t know where to begin. I don\'t know anyone here and I\'m not sure if my research background is relevant for building a startup.`,
-    response:
-      `Welcome, Priya! Your research background is a genuine advantage here — HK's ecosystem is built for exactly your profile. Your constellation is on the right →`,
+    message: `I am an AI researcher, just graduated from India. I want to start a company in Hong Kong but I don't know where to begin. I don't know anyone here and I'm not sure if my research background is relevant for building a startup.`,
+    response: `Welcome, Priya! Your research background is a genuine advantage here — HK's ecosystem is built for exactly your profile.`,
     nodes: [
       { name: 'HKSTP AI Lab', category: 'education', reason: 'Research-to-market programme built for academics going commercial — perfect for you' },
       { name: 'InnoHK Research Clusters', category: 'education', reason: '28 R&D centres bridging research and commercialisation across HK' },
@@ -60,32 +53,30 @@ const DEMO_DATA = {
       { name: 'AI Community HK', category: 'community', reason: 'Co-founder matching and weekly meetups — find your team here' },
       { name: 'Indian Founders HK', category: 'community', reason: 'Growing community of Indian entrepreneurs — shared experience, real support' },
       { name: 'HKTE Top Talent Pass Scheme', category: 'education', reason: 'Fast-tracked 2-year work visa for high earners and top university graduates' },
-      { name: 'HKTE Free Cantonese Basics Course', category: 'social', reason: 'Free HKTE course — learning \'M\'goi\' opens every door in Hong Kong' },
+      { name: 'HKTE Free Cantonese Basics Course', category: 'social', reason: `Free HKTE course — learning 'M'goi' opens every door in Hong Kong` },
     ],
   },
 };
 
 const INTRO_MESSAGE = {
   role: 'assistant',
-  content: `Welcome to City Twin. ◉
-
-I'm your personal guide to Hong Kong — connecting you to the opportunities, communities, and people that will help you thrive here.
-
-Tell me about yourself. Where are you from? What brought you to Hong Kong — or what's making you consider it? Speak in any language.`,
+  content: `Hello! I'm your Digital Twin — your AI companion for discovering opportunities worldwide. I can help you explore programs, events, and experiences tailored to your goals. Where would you like to begin?`,
   isIntro: true,
   id: 'intro-message',
 };
 
-// ── App ──────────────────────────────────────────────────────────────────────
+// ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [messages, setMessages] = useState([INTRO_MESSAGE]);
-  const [nodes, setNodes] = useState([]);
+  const [, setNodes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [apiKey] = useState('');
+  const [activeTab, setActiveTab] = useState('constellation');
+  const [showChat, setShowChat] = useState(false);
+  const [chatPrompt, setChatPrompt] = useState('');
+  const [showDemoMenu, setShowDemoMenu] = useState(false);
 
-  // Add nodes without duplicates, assigning unique IDs
   const addNodes = useCallback((newNodes, delay = 0) => {
     newNodes.forEach((node, i) => {
       setTimeout(() => {
@@ -97,15 +88,12 @@ export default function App() {
     });
   }, []);
 
-  // Send a message to Claude (real API)
   const sendMessage = useCallback(async (text) => {
     if (!text.trim() || isLoading) return;
 
-    const userMsg = { role: 'user', content: text, id: `user-${Date.now()}` };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages(prev => [...prev, { role: 'user', content: text, id: `user-${Date.now()}` }]);
     setIsLoading(true);
 
-    // Placeholder streaming message
     const assistantId = `assistant-${Date.now()}`;
     setMessages(prev => [...prev, { role: 'assistant', content: '', streaming: true, id: assistantId }]);
 
@@ -127,13 +115,11 @@ export default function App() {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = '';
-      let fullText = '';
+      let buffer = '', fullText = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() ?? '';
@@ -142,132 +128,188 @@ export default function App() {
           if (!line.startsWith('data: ')) continue;
           const raw = line.slice(6).trim();
           if (raw === '[DONE]') break;
-
           try {
             const parsed = JSON.parse(raw);
             if (parsed.error) throw new Error(parsed.error);
             if (parsed.text) {
               fullText += parsed.text;
               const display = fullText.split('NODES:')[0].trimEnd();
-              setMessages(prev =>
-                prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: display } : m))
-              );
+              setMessages(prev => prev.map((m, i) => i === prev.length - 1 ? { ...m, content: display } : m));
             }
           } catch (e) {
-            if (e.message && e.message !== 'Unexpected end of JSON input') throw e;
+            if (e.message !== 'Unexpected end of JSON input') throw e;
           }
         }
       }
 
-      // Extract and animate nodes
       const match = fullText.match(/NODES:\s*(\[[\s\S]*?\])\s*$/);
       if (match) {
-        try {
-          const extracted = JSON.parse(match[1]);
-          addNodes(extracted, 300);
-        } catch {
-          // ignore malformed JSON
-        }
+        try { addNodes(JSON.parse(match[1]), 300); } catch { /* ignore */ }
       }
 
-      setMessages(prev =>
-        prev.map((m, i) => (i === prev.length - 1 ? { ...m, streaming: false } : m))
-      );
+      setMessages(prev => prev.map((m, i) => i === prev.length - 1 ? { ...m, streaming: false } : m));
     } catch (err) {
       console.error(err);
-      setMessages(prev =>
-        prev.map((m, i) =>
-          i === prev.length - 1
-            ? {
-                ...m,
-                content: `⚠ ${err.message}\n\nNo API key? Use a demo profile above, or add your key with the key icon.`,
-                streaming: false,
-                isError: true,
-              }
-            : m
-        )
-      );
+      setMessages(prev => prev.map((m, i) =>
+        i === prev.length - 1 ? { ...m, content: `⚠ ${err.message}`, streaming: false, isError: true } : m
+      ));
     } finally {
       setIsLoading(false);
     }
   }, [messages, isLoading, apiKey, addNodes]);
 
-  // Run a hardcoded demo profile
-  const runDemo = useCallback((profileKey) => {
-    const demo = DEMO_DATA[profileKey];
+  const runDemo = useCallback((key) => {
+    const demo = DEMO_DATA[key];
     if (!demo) return;
-
     setNodes([]);
     setMessages([INTRO_MESSAGE]);
-
+    setShowDemoMenu(false);
+    setShowChat(true);
     setTimeout(() => {
       setMessages(prev => [...prev, { role: 'user', content: demo.message }]);
       setIsLoading(true);
-
       setTimeout(() => {
-        setMessages(prev => [
-          ...prev,
-          { role: 'assistant', content: demo.response, streaming: false },
-        ]);
+        setMessages(prev => [...prev, { role: 'assistant', content: demo.response, streaming: false }]);
         setIsLoading(false);
         addNodes(demo.nodes, 500);
       }, 1400);
     }, 300);
   }, [addNodes]);
 
-  const clearAll = useCallback(() => {
-    setMessages([INTRO_MESSAGE]);
-    setNodes([]);
+  const openChat = useCallback((prompt = '') => {
+    setChatPrompt(prompt);
+    setShowChat(true);
+  }, []);
+
+  const closeChat = useCallback(() => {
+    setShowChat(false);
+    setChatPrompt('');
   }, []);
 
   return (
-    <div className="app">
-      {/* ── Header ── */}
-      <header className="header">
-        <div className="logo">
-          <span className="logo-mark">◉</span>
-          <div className="logo-text-group">
-            <span className="logo-name">CITY TWIN</span>
-            <span className="logo-tagline">Hong Kong Intelligence Layer</span>
-          </div>
-        </div>
-
-        <DemoProfiles demos={DEMO_DATA} onSelect={runDemo} onClear={clearAll} />
-
-        <div className="header-actions">
+    <div
+      className="flex flex-col w-full h-full bg-[#0d1b2e] relative overflow-hidden"
+      style={{ maxWidth: 480, margin: '0 auto' }}
+      onClick={() => showDemoMenu && setShowDemoMenu(false)}
+    >
+      {/* Header */}
+      <header className="bg-gradient-to-r from-[#0f1729] via-[#1a1f3a] to-[#0f1729] text-white px-4 py-3 shadow-lg border-b border-white/10 flex items-center justify-between flex-shrink-0">
+        <CityTwinLogo />
+        <div onClick={e => e.stopPropagation()} className="relative">
           <button
-            className="icon-btn"
-            title="API Key"
-            onClick={() => setShowKeyInput(v => !v)}
+            className="px-3 py-1.5 rounded-lg bg-white/10 text-white/80 hover:bg-white/20 transition-colors text-xs font-semibold tracking-wider border border-white/10"
+            onClick={() => setShowDemoMenu(v => !v)}
           >
-            🔑
+            DEMO
           </button>
-          {showKeyInput && (
-            <input
-              className="api-key-field"
-              type="password"
-              placeholder="sk-ant-..."
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && setShowKeyInput(false)}
-              autoFocus
-            />
-          )}
+          <AnimatePresence>
+            {showDemoMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                className="absolute right-0 top-full mt-2 bg-[#1a1f3a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 min-w-[160px]"
+              >
+                {Object.entries(DEMO_DATA).map(([key, d]) => (
+                  <button
+                    key={key}
+                    className="w-full px-4 py-3 text-left text-white/90 hover:bg-white/10 transition-colors text-sm"
+                    onClick={() => runDemo(key)}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </header>
 
-      {/* ── Main ── */}
-      <main className="main">
-        <ChatPanel
-          messages={messages}
-          onSend={sendMessage}
-          isLoading={isLoading}
-        />
-        <MapView nodes={nodes} />
-      </main>
+      {/* Main content area */}
+      <div className="flex-1 relative overflow-hidden">
+        {/* Tab views — always rendered but hidden behind chat */}
+        <div className={showChat ? 'hidden' : 'h-full'}>
+          {activeTab === 'constellation' ? (
+            <NeuralNetwork
+              onOpenChat={openChat}
+              onCategorySelect={sub => setChatPrompt(`Tell me about ${sub} opportunities in Hong Kong`)}
+            />
+          ) : (
+            <OpportunityTimeline />
+          )}
+        </div>
 
-      {/* Temporary debug component */}
-      <ElevenLabsTest />
+        {/* Chat overlay (slide-up sheet) */}
+        <AnimatePresence>
+          {showChat && (
+            <>
+              <motion.div
+                key="backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+                onClick={closeChat}
+              />
+              <motion.div
+                key="sheet"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                className="absolute inset-x-0 bottom-0 rounded-t-3xl overflow-hidden shadow-2xl"
+                style={{ height: '85vh', zIndex: 50 }}
+              >
+                <ChatPanel
+                  messages={messages}
+                  onSend={sendMessage}
+                  isLoading={isLoading}
+                  onClose={closeChat}
+                  initialPrompt={chatPrompt}
+                />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Floating chat button */}
+        {!showChat && (
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.05 }}
+            onClick={() => openChat()}
+            className="absolute bottom-6 right-6 w-16 h-16 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-2xl flex items-center justify-center"
+            style={{ zIndex: 40, boxShadow: '0 0 30px rgba(168, 85, 247, 0.5)' }}
+          >
+            <MessageCircle className="w-7 h-7" />
+          </motion.button>
+        )}
+      </div>
+
+      {/* Bottom navigation */}
+      <nav className="bg-[#0f1729] border-t border-white/10 flex items-center justify-around p-2 flex-shrink-0" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={() => { setActiveTab('constellation'); setShowChat(false); }}
+          className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-colors ${
+            activeTab === 'constellation' && !showChat ? 'bg-purple-600/20 text-purple-300' : 'text-gray-400'
+          }`}
+        >
+          <Network className="w-6 h-6" />
+          <span style={{ fontSize: '0.75rem' }}>Constellation</span>
+        </motion.button>
+
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={() => { setActiveTab('schedule'); setShowChat(false); }}
+          className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-colors ${
+            activeTab === 'schedule' && !showChat ? 'bg-purple-600/20 text-purple-300' : 'text-gray-400'
+          }`}
+        >
+          <Calendar className="w-6 h-6" />
+          <span style={{ fontSize: '0.75rem' }}>Schedule</span>
+        </motion.button>
+      </nav>
     </div>
   );
 }

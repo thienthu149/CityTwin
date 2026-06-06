@@ -17,11 +17,11 @@ function buildCatalog(db) {
   const eco = db.hong_kong_ecosystem;
   const sections = [
     { key: 'funding', label: 'FUNDING (use category: "funding")' },
-    { key: 'scholarships_and_education', label: 'SCHOLARSHIPS & EDUCATION (use category: "scholarship")' },
-    { key: 'communities_by_nationality', label: 'NATIONALITY COMMUNITIES (use category: "community")' },
-    { key: 'entrepreneurship_communities', label: 'ENTREPRENEURSHIP COMMUNITIES (use category: "community")' },
-    { key: 'student_communities', label: 'STUDENT COMMUNITIES (use category: "education")' },
-    { key: 'real_social_integration', label: 'SOCIAL INTEGRATION (use category: "social")' },
+    { key: 'education', label: 'SCHOLARSHIPS & EDUCATION (use category: "scholarship")' },
+    { key: 'expats', label: 'NATIONALITY COMMUNITIES (use category: "community")' },
+    { key: 'founders', label: 'ENTREPRENEURSHIP COMMUNITIES (use category: "community")' },
+    { key: 'study', label: 'STUDENT COMMUNITIES (use category: "education")' },
+    { key: 'social', label: 'SOCIAL INTEGRATION (use category: "social")' },
   ];
   const lines = ['HONG KONG ECOSYSTEM CATALOG\nUse ONLY resources from this list. Copy their names exactly.\n'];
   for (const { key, label } of sections) {
