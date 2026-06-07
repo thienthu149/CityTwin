@@ -3,6 +3,7 @@ import { ChatSheet } from './components/ChatSheet';
 import { NeuralNetwork } from './components/NeuralNetwork';
 import { OpportunityTimeline } from './components/OpportunityTimeline';
 import { CityTwinLogo } from './components/CityTwinLogo';
+import { HeroPage } from './components/HeroPage';
 import { MessageCircle, Network, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -14,6 +15,7 @@ interface OpportunityNode {
 }
 
 export default function App() {
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'network' | 'timeline'>('network');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [nodes, setNodes] = useState<OpportunityNode[]>([]);
@@ -26,6 +28,17 @@ export default function App() {
       return [...prev, ...uniqueNewNodes];
     });
   }, []);
+
+  const handleCitySelect = (city: string) => {
+    if (city === 'Hong Kong') {
+      setSelectedCity(city);
+    }
+  };
+
+  // Show hero page if no city selected
+  if (!selectedCity) {
+    return <HeroPage onCitySelect={handleCitySelect} />;
+  }
 
   return (
     <div className="size-full flex flex-col bg-[#0a0e27]">
