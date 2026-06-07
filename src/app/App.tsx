@@ -1,115 +1,61 @@
-import { useState, useCallback } from 'react';
-import { ChatSheet, type Message } from './components/ChatSheet';
-import { NeuralNetwork } from './components/NeuralNetwork';
-import { OpportunityTimeline } from './components/OpportunityTimeline';
-import { CityTwinLogo } from './components/CityTwinLogo';
-import { HeroPage } from './components/HeroPage';
-import { MessageCircle, Network, Calendar } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import './citytwin.css';
+import { TopNav } from './components/TopNav';
+import { Home } from './views/Home';
+import { TalentExperience } from './views/TalentExperience';
+import { Organizations } from './views/Organizations';
+import { Modal, type ModalKind } from './components/Modals';
 
-interface OpportunityNode {
-  id: string;
-  name: string;
-  category: string;
-  reason: string;
-}
+type View = 'home' | 'experience' | 'organizations';
 
 export default function App() {
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'network' | 'timeline'>('network');
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [nodes, setNodes] = useState<OpportunityNode[]>([]);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: "Welcome to City Twin. ◉\n\nI'm your personal guide to Hong Kong — connecting you to the opportunities, communities, and people that will help you thrive here.\n\nTell me about yourself. Where are you from? What brought you to Hong Kong — or what's making you consider it? Speak in any language.",
-      sender: 'ai',
-    },
-  ]);
+  const [view, setView] = useState<View>('home');
+  const [modal, setModal] = useState<ModalKind | null>(null);
 
-  const handleNodesUpdate = useCallback((newNodes: OpportunityNode[]) => {
-    setNodes(prev => {
-      // Add new nodes without duplicates
-      const existingNames = new Set(prev.map(n => n.name));
-      const uniqueNewNodes = newNodes.filter(n => !existingNames.has(n.name));
-      return [...prev, ...uniqueNewNodes];
-    });
-  }, []);
-
-  const handleCitySelect = (city: string) => {
-    if (city === 'Hong Kong') {
-      setSelectedCity(city);
-    }
+  const goHome = () => {
+    setView('home');
+    window.scrollTo({ top: 0 });
+  };
+  const goExperience = () => {
+    setView('experience');
+    window.scrollTo({ top: 0 });
+  };
+  const goOrganizations = () => {
+    setView('organizations');
+    window.scrollTo({ top: 0 });
   };
 
-  // Show hero page if no city selected
-  if (!selectedCity) {
-    return <HeroPage onCitySelect={handleCitySelect} />;
-  }
-
   return (
-    <div className="size-full flex flex-col bg-[#0a0e27]">
-      <header className="bg-gradient-to-r from-[#0f1729] via-[#1a1f3a] to-[#0f1729] text-white px-4 py-3 shadow-lg border-b border-white/10">
-        <CityTwinLogo />
-      </header>
+    <div className="relative min-h-screen w-full bg-[#05070f] text-white">
+      <TopNav
+        onForOrganizations={goOrganizations}
+        onSignIn={() => setModal('signin')}
+        onLogIn={() => setModal('signin')}
+        onLogo={goHome}
+      />
 
-      <div className="flex-1 overflow-hidden relative">
-        {activeTab === 'network' && <NeuralNetwork nodes={nodes} />}
-        {activeTab === 'timeline' && <OpportunityTimeline />}
-
-        <AnimatePresence>
-          {isChatOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/20 backdrop-blur-sm"
-                onClick={() => setIsChatOpen(false)}
-              />
-              <ChatSheet
-                onClose={() => setIsChatOpen(false)}
-                onNodesUpdate={handleNodesUpdate}
-                messages={messages}
-                onMessagesChange={setMessages}
-              />
-            </>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={view}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          {view === 'home' && <Home onEnterHongKong={goExperience} />}
+          {view === 'experience' && <TalentExperience />}
+          {view === 'organizations' && (
+            <Organizations
+              onRequestPartnership={() => setModal('partnership')}
+              onDownloadReport={() => setModal('report')}
+              onBackToTalent={goExperience}
+            />
           )}
-        </AnimatePresence>
+        </motion.div>
+      </AnimatePresence>
 
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setIsChatOpen(true)}
-          className="absolute bottom-6 right-6 w-16 h-16 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-2xl flex items-center justify-center"
-          style={{ zIndex: 40, boxShadow: '0 0 30px rgba(168, 85, 247, 0.5)' }}
-        >
-          <MessageCircle className="w-7 h-7" />
-        </motion.button>
-      </div>
-
-      <nav className="bg-[#0f1729] border-t border-white/10 flex items-center justify-around p-2 safe-bottom">
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setActiveTab('network')}
-          className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-colors ${
-            activeTab === 'network' ? 'bg-purple-600/20 text-purple-300' : 'text-gray-400'
-          }`}
-        >
-          <Network className="w-6 h-6" />
-          <span style={{ fontSize: '0.75rem' }}>Constellation</span>
-        </motion.button>
-
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setActiveTab('timeline')}
-          className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-colors ${
-            activeTab === 'timeline' ? 'bg-purple-600/20 text-purple-300' : 'text-gray-400'
-          }`}
-        >
-          <Calendar className="w-6 h-6" />
-          <span style={{ fontSize: '0.75rem' }}>Schedule</span>
-        </motion.button>
-      </nav>
+      <AnimatePresence>{modal && <Modal kind={modal} onClose={() => setModal(null)} />}</AnimatePresence>
     </div>
   );
 }
