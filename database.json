@@ -63,7 +63,7 @@
             {"id": "i5", "name": "HandsOn Hong Kong", "category": "Social", "details": "A hub offering flexible volunteer opportunities across local charities.", "month": "December", "link": "https://www.handsonhongkong.org/"},
             {"id": "i6", "name": "Outward Bound HK", "category": "Social", "details": "Outdoor team-building and integration experiences for newcomers.", "month": "October", "link": "https://www.outwardbound.org.hk/"},
             {"id": "i7", "name": "HK Social Hub", "category": "Social", "details": "Weekly community-run networking mixers across the city center.", "month": "September", "link": "https://www.meetup.com/"},
-            
+            {"id": "i8", "name": "Hong Kong Dragon Boat Association", "category": "Social", "details": "Traditional water sports club highly popular for expat integration.", "month": "June", "link": "https://hkcdba.org/en/"}
         ]
     }
 }
