@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ChatSheet } from './components/ChatSheet';
+import { ChatSheet, type Message } from './components/ChatSheet';
 import { NeuralNetwork } from './components/NeuralNetwork';
 import { OpportunityTimeline } from './components/OpportunityTimeline';
 import { CityTwinLogo } from './components/CityTwinLogo';
@@ -19,6 +19,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'network' | 'timeline'>('network');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [nodes, setNodes] = useState<OpportunityNode[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: '1',
+      text: "Welcome to City Twin. ◉\n\nI'm your personal guide to Hong Kong — connecting you to the opportunities, communities, and people that will help you thrive here.\n\nTell me about yourself. Where are you from? What brought you to Hong Kong — or what's making you consider it? Speak in any language.",
+      sender: 'ai',
+    },
+  ]);
 
   const handleNodesUpdate = useCallback((newNodes: OpportunityNode[]) => {
     setNodes(prev => {
@@ -60,7 +67,12 @@ export default function App() {
                 className="absolute inset-0 bg-black/20 backdrop-blur-sm"
                 onClick={() => setIsChatOpen(false)}
               />
-              <ChatSheet onClose={() => setIsChatOpen(false)} onNodesUpdate={handleNodesUpdate} />
+              <ChatSheet
+                onClose={() => setIsChatOpen(false)}
+                onNodesUpdate={handleNodesUpdate}
+                messages={messages}
+                onMessagesChange={setMessages}
+              />
             </>
           )}
         </AnimatePresence>

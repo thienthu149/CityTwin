@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import database from '../../../database.json';
 
 interface Node {
   id: string;
@@ -8,7 +9,6 @@ interface Node {
   y: number;
   color: string;
   isCenter?: boolean;
-  children?: Array<{ id: string; label: string; description: string }>;
 }
 
 interface OpportunityNode {
@@ -18,18 +18,28 @@ interface OpportunityNode {
   reason: string;
 }
 
+interface DynamicNodeData {
+  id: string;
+  label: string;
+  parentPetalId: string;
+  angle: number;
+  radius: number;
+  color: string;
+  detail: string;
+  link: string;
+  month: string;
+  globalIndex: number;
+}
+
 interface NeuralNetworkProps {
   nodes: OpportunityNode[];
 }
 
-// Arrange nodes in a Bauhinia flower pattern (Hong Kong flag)
-// 5 petals arranged in a circle, like the flower on HK flag
 const centerX = 50;
 const centerY = 50;
 const petalRadius = 25;
 
 const createPetalPosition = (index: number, total: number) => {
-  // Start from top and go clockwise, offset by -90 degrees to start at top
   const angle = (index * (360 / total) - 90) * (Math.PI / 180);
   return {
     x: centerX + Math.cos(angle) * petalRadius,
@@ -38,66 +48,12 @@ const createPetalPosition = (index: number, total: number) => {
 };
 
 const petals = [
-  {
-    id: 'community',
-    label: 'Community',
-    color: '#ec4899',
-    children: [
-      { id: 'c1', label: 'Meetup Groups', description: 'Tech meetups and networking events' },
-      { id: 'c2', label: 'Co-working Spaces', description: 'Collaborative work environments' },
-      { id: 'c3', label: 'Local Forums', description: 'Online community discussions' },
-    ],
-  },
-  {
-    id: 'education',
-    label: 'Education',
-    color: '#3b82f6',
-    children: [
-      { id: 'ed1', label: 'Universities', description: 'Top-ranked universities and programs' },
-      { id: 'ed2', label: 'Online Courses', description: 'Digital learning platforms and MOOCs' },
-      { id: 'ed3', label: 'Workshops', description: 'Hands-on skill-building sessions' },
-    ],
-  },
-  {
-    id: 'scholarship',
-    label: 'Scholarships',
-    color: '#10b981',
-    children: [
-      { id: 's1', label: 'Research Grants', description: 'Academic research funding' },
-      { id: 's2', label: 'Study Abroad', description: 'International education programs' },
-      { id: 's3', label: 'Innovation Awards', description: 'Recognition for innovative work' },
-    ],
-  },
-  {
-    id: 'grants',
-    label: 'Grants',
-    color: '#f59e0b',
-    children: [
-      { id: 'g1', label: 'Startup Funding', description: 'Seed funding for new ventures' },
-      { id: 'g2', label: 'Government Grants', description: 'Public sector support programs' },
-      { id: 'g3', label: 'Innovation Grants', description: 'Funding for innovative projects' },
-    ],
-  },
-  {
-    id: 'entrepreneurship',
-    label: 'Entrepreneurship',
-    color: '#8b5cf6',
-    children: [
-      { id: 'e1', label: 'Incubators', description: 'Startup acceleration programs' },
-      { id: 'e2', label: 'Pitch Events', description: 'Investor pitch competitions' },
-      { id: 'e3', label: 'Mentor Network', description: 'Expert guidance and mentorship' },
-    ],
-  },
-  {
-    id: 'culture',
-    label: 'Culture',
-    color: '#06b6d4',
-    children: [
-      { id: 'cu1', label: 'Art Galleries', description: 'Contemporary art exhibitions' },
-      { id: 'cu2', label: 'Festivals', description: 'Cultural celebrations and events' },
-      { id: 'cu3', label: 'Museums', description: 'Historical and cultural museums' },
-    ],
-  },
+  { id: 'funding',   label: 'Funding',   color: '#f59e0b' },
+  { id: 'education', label: 'Education', color: '#3b82f6' },
+  { id: 'expats',    label: 'Expats',    color: '#06b6d4' },
+  { id: 'founders',  label: 'Founders',  color: '#ec4899' },
+  { id: 'study',     label: 'Study',     color: '#10b981' },
+  { id: 'social',    label: 'Social',    color: '#8b5cf6' },
 ];
 
 const mainNodes: Node[] = [
@@ -119,54 +75,208 @@ const mainNodes: Node[] = [
   }),
 ];
 
-const categoryColors: Record<string, string> = {
-  funding: '#f59e0b',
-  scholarship: '#10b981',
-  community: '#ec4899',
-  education: '#3b82f6',
-  social: '#06b6d4',
-  event: '#8b5cf6',
+const categoryToPetalId: Record<string, string> = {
+  funding: 'funding',
+  education: 'education',
+  expats: 'expats',
+  founders: 'founders',
+  study: 'study',
+  social: 'social',
 };
+
+// Flat lookup: lowercased name → database entry (for enriching AI-returned nodes)
+const _allDbItems = [
+  ...database.hong_kong_ecosystem.funding,
+  ...database.hong_kong_ecosystem.education,
+  ...database.hong_kong_ecosystem.expats,
+  ...database.hong_kong_ecosystem.founders,
+  ...database.hong_kong_ecosystem.study,
+  ...database.hong_kong_ecosystem.social,
+];
+const dbByName: Record<string, { id: string; details: string; link: string; month: string }> = {};
+for (const item of _allDbItems) {
+  dbByName[item.name.toLowerCase()] = { id: item.id, details: item.details, link: item.link, month: item.month };
+}
 
 export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [selectedChild, setSelectedChild] = useState<{ parentId: string; child: { id: string; label: string; description: string } } | null>(null);
+  const [selectedDynamicNode, setSelectedDynamicNode] = useState<DynamicNodeData | null>(null);
   const [showFullDetails, setShowFullDetails] = useState(false);
   const [nodePositions, setNodePositions] = useState(mainNodes);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [dynamicNodes, setDynamicNodes] = useState<Node[]>([]);
+  const [dynamicNodeData, setDynamicNodeData] = useState<DynamicNodeData[]>([]);
+  const [isGesturing, setIsGesturing] = useState(false);
 
-  // Convert opportunity nodes to visual nodes
-  useEffect(() => {
-    if (nodes.length === 0) return;
+  // Gesture tracking — refs avoid stale closures in event handlers
+  const svgRef = useRef<SVGSVGElement>(null);
+  const gesture = useRef({
+    dragging: false,
+    moved: false,           // true if pointer moved past threshold
+    startClientX: 0,
+    startClientY: 0,
+    startPanX: 0,
+    startPanY: 0,
+    pinchActive: false,
+    pinchStartDist: 0,
+    pinchStartZoom: 1,
+  });
 
-    const newDynamicNodes: Node[] = nodes.map((oppNode, index) => {
-      const angle = (index * (360 / Math.max(nodes.length, 6)) - 90) * (Math.PI / 180);
-      const radius = 30 + (index % 2) * 5; // Vary radius slightly
-      return {
-        id: oppNode.id,
-        label: oppNode.name,
-        x: centerX + Math.cos(angle) * radius,
-        y: centerY + Math.sin(angle) * radius,
-        color: categoryColors[oppNode.category] || '#8b5cf6',
-        children: [{
-          id: `${oppNode.id}-detail`,
-          label: oppNode.name,
-          description: oppNode.reason,
-        }],
+  const svgUnitPerPixel = () => {
+    const w = svgRef.current?.getBoundingClientRect().width ?? 400;
+    return 100 / w;
+  };
+
+  const touchDist = (a: React.Touch, b: React.Touch) => {
+    const dx = a.clientX - b.clientX;
+    const dy = a.clientY - b.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // ── Touch handlers ──────────────────────────────────────────────────────────
+  const onTouchStart = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length === 1) {
+      gesture.current = {
+        ...gesture.current,
+        dragging: true,
+        moved: false,
+        startClientX: e.touches[0].clientX,
+        startClientY: e.touches[0].clientY,
+        startPanX: pan.x,
+        startPanY: pan.y,
+        pinchActive: false,
       };
-    });
+    } else if (e.touches.length === 2) {
+      gesture.current.dragging = false;
+      gesture.current.pinchActive = true;
+      gesture.current.pinchStartDist = touchDist(e.touches[0], e.touches[1]);
+      gesture.current.pinchStartZoom = zoom;
+    }
+  };
 
-    setDynamicNodes(newDynamicNodes);
+  const onTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length === 1 && gesture.current.dragging) {
+      const scale = svgUnitPerPixel();
+      const dx = (e.touches[0].clientX - gesture.current.startClientX) * scale;
+      const dy = (e.touches[0].clientY - gesture.current.startClientY) * scale;
+      if (!gesture.current.moved && (Math.abs(dx) > 0.8 || Math.abs(dy) > 0.8)) {
+        gesture.current.moved = true;
+        setIsGesturing(true);
+      }
+      if (gesture.current.moved) {
+        setPan({ x: gesture.current.startPanX + dx, y: gesture.current.startPanY + dy });
+      }
+    } else if (e.touches.length === 2 && gesture.current.pinchActive) {
+      const dist = touchDist(e.touches[0], e.touches[1]);
+      const newZoom = Math.max(0.4, Math.min(6,
+        gesture.current.pinchStartZoom * dist / gesture.current.pinchStartDist
+      ));
+      setZoom(newZoom);
+    }
+  };
+
+  const onTouchEnd = () => {
+    gesture.current.dragging = false;
+    gesture.current.pinchActive = false;
+    setIsGesturing(false);
+  };
+
+  // ── Mouse handlers (desktop) ────────────────────────────────────────────────
+  const onMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    gesture.current = {
+      ...gesture.current,
+      dragging: true,
+      moved: false,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startPanX: pan.x,
+      startPanY: pan.y,
+    };
+  };
+
+  const onMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!gesture.current.dragging) return;
+    const scale = svgUnitPerPixel();
+    const dx = (e.clientX - gesture.current.startClientX) * scale;
+    const dy = (e.clientY - gesture.current.startClientY) * scale;
+    if (!gesture.current.moved && (Math.abs(dx) > 0.8 || Math.abs(dy) > 0.8)) {
+      gesture.current.moved = true;
+      setIsGesturing(true);
+    }
+    if (gesture.current.moved) {
+      setPan({ x: gesture.current.startPanX + dx, y: gesture.current.startPanY + dy });
+    }
+  };
+
+  const onMouseUp = () => {
+    gesture.current.dragging = false;
+    setIsGesturing(false);
+  };
+
+  // ── Scroll-wheel zoom ───────────────────────────────────────────────────────
+  const onWheel = (e: React.WheelEvent<SVGSVGElement>) => {
+    const factor = e.deltaY > 0 ? 0.92 : 1.09;
+    setZoom(prev => Math.max(0.4, Math.min(6, prev * factor)));
+  };
+
+  // Build child nodes from AI-returned recommendations, enriched with database details
+  useEffect(() => {
+    if (nodes.length === 0) {
+      setDynamicNodeData([]);
+      return;
+    }
+
+    const grouped: Record<string, OpportunityNode[]> = {};
+    for (const oppNode of nodes) {
+      const petalId = categoryToPetalId[oppNode.category.toLowerCase()] ?? 'founders';
+      if (!grouped[petalId]) grouped[petalId] = [];
+      grouped[petalId].push(oppNode);
+    }
+
+    const newData: DynamicNodeData[] = [];
+    let globalIndex = 0;
+
+    for (const [petalId, groupNodes] of Object.entries(grouped)) {
+      const petalNode = mainNodes.find(n => n.id === petalId);
+      if (!petalNode) continue;
+
+      const petalAngle = Math.atan2(petalNode.y - centerY, petalNode.x - centerX);
+      const childRadius = 26;
+      const arcSpread = Math.PI / 2;
+
+      groupNodes.forEach((oppNode, i) => {
+        const total = groupNodes.length;
+        const startAngle = petalAngle - arcSpread / 2;
+        const angleStep = total > 1 ? arcSpread / (total - 1) : 0;
+        const childAngle = total > 1 ? startAngle + angleStep * i : petalAngle;
+
+        const dbEntry = dbByName[oppNode.name.toLowerCase()];
+
+        newData.push({
+          id: dbEntry?.id ?? oppNode.id,
+          label: oppNode.name,
+          parentPetalId: petalId,
+          angle: childAngle,
+          radius: childRadius,
+          color: petalNode.color,
+          detail: dbEntry?.details ?? oppNode.reason,
+          link: dbEntry?.link ?? '',
+          month: dbEntry?.month ?? '',
+          globalIndex: globalIndex++,
+        });
+      });
+    }
+
+    setDynamicNodeData(newData);
   }, [nodes]);
 
+  // Gentle wobble animation for petal nodes
   useEffect(() => {
     const interval = setInterval(() => {
-      setNodePositions((prev) =>
-        prev.map((node) => {
+      setNodePositions(prev =>
+        prev.map(node => {
           if (node.isCenter) return node;
-          const wobble = 2;
+          const wobble = 1.5;
           return {
             ...node,
             x: node.x + (Math.random() - 0.5) * wobble,
@@ -175,56 +285,67 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
         })
       );
     }, 2000);
-
     return () => clearInterval(interval);
   }, []);
 
-  const centerNode = nodePositions.find((n) => n.isCenter)!;
+  const centerNode = nodePositions.find(n => n.isCenter)!;
+
+  // Resolve dynamic node positions live based on current (wobbled) petal positions
+  const resolvedDynamicNodes = dynamicNodeData
+    .map(data => {
+      const parent = nodePositions.find(n => n.id === data.parentPetalId);
+      if (!parent) return null;
+      return {
+        ...data,
+        x: parent.x + Math.cos(data.angle) * data.radius,
+        y: parent.y + Math.sin(data.angle) * data.radius,
+        parentX: parent.x,
+        parentY: parent.y,
+      };
+    })
+    .filter((n): n is NonNullable<typeof n> => n !== null);
 
   const handleNodeClick = (nodeId: string) => {
+    if (gesture.current.moved) return;
     const clickedNode = nodePositions.find(n => n.id === nodeId);
-
-    setExpandedNodes((prev) => {
+    setExpandedNodes(prev => {
       const newSet = new Set(prev);
       if (newSet.has(nodeId)) {
-        // If clicking the same node, collapse it and zoom out
         newSet.delete(nodeId);
-
-        // If no more expanded nodes, reset zoom
         if (newSet.size === 0) {
           setZoom(1);
           setPan({ x: 0, y: 0 });
         }
       } else {
-        // Expand the node and zoom in
         newSet.add(nodeId);
-
-        // Zoom in and pan to the clicked node
         if (clickedNode) {
           setZoom(1.8);
-          // Pan so the clicked node is centered
-          const panX = (50 - clickedNode.x) * 0.3;
-          const panY = (50 - clickedNode.y) * 0.3;
-          setPan({ x: panX, y: panY });
+          setPan({ x: (50 - clickedNode.x) * 0.3, y: (50 - clickedNode.y) * 0.3 });
         }
       }
       return newSet;
     });
   };
 
-  const handleChildClick = (parentId: string, child: { id: string; label: string; description: string }) => {
-    setSelectedChild({ parentId, child });
+  const handleDynamicNodeClick = (data: DynamicNodeData) => {
+    if (gesture.current.moved) return;
+    setSelectedDynamicNode(data);
     setShowFullDetails(false);
-  };
-
-  const handleLearnMore = () => {
-    setShowFullDetails(true);
   };
 
   const handleCloseDetails = () => {
     setShowFullDetails(false);
-    setSelectedChild(null);
+    setSelectedDynamicNode(null);
   };
+
+  const activeColor = selectedDynamicNode?.color;
+  const activeParentLabel = selectedDynamicNode
+    ? nodePositions.find(n => n.id === selectedDynamicNode.parentPetalId)?.label
+    : undefined;
+  const activeChildLabel = selectedDynamicNode?.label;
+  const activeChildDescription = selectedDynamicNode?.detail;
+  const activeChildLink = selectedDynamicNode?.link;
+  const activeChildMonth = selectedDynamicNode?.month;
 
   return (
     <div className="h-full relative overflow-hidden">
@@ -261,7 +382,20 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
           </p>
         </div>
 
-        <svg className="w-full h-[calc(100%-4rem)] touch-none" viewBox="0 0 100 100">
+        <svg
+          ref={svgRef}
+          className="w-full h-[calc(100%-4rem)] touch-none select-none"
+          viewBox="0 0 100 100"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
+          onWheel={onWheel}
+          style={{ cursor: isGesturing ? 'grabbing' : 'grab' }}
+        >
           <defs>
             <filter id="glow">
               <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -276,442 +410,267 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
             </radialGradient>
           </defs>
 
-          <motion.g
-            animate={{
-              transform: `translate(${50 + pan.x}, ${50 + pan.y}) scale(${zoom}) translate(-50, -50)`
-            }}
-            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-          >
+          <g transform={`translate(${50 + pan.x} ${50 + pan.y}) scale(${zoom}) translate(-50 -50)`}>
+            {/* Lines: center → petal nodes */}
+            {nodePositions.map(node => {
+              if (node.isCenter) return null;
+              return (
+                <motion.line
+                  key={`line-${node.id}`}
+                  x1={centerNode.x}
+                  y1={centerNode.y}
+                  x2={node.x}
+                  y2={node.y}
+                  stroke={node.color}
+                  strokeWidth="0.2"
+                  opacity="0.3"
+                  strokeDasharray="0.5,1"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1, ease: 'easeOut' }}
+                />
+              );
+            })}
 
-          {/* Lines from center to static nodes */}
-          {nodePositions.map((node) => {
-            if (node.isCenter) return null;
-            return (
-              <motion.line
-                key={`line-${node.id}`}
-                x1={centerNode.x}
-                y1={centerNode.y}
-                x2={node.x}
-                y2={node.y}
-                stroke={node.color}
-                strokeWidth="0.2"
-                opacity="0.3"
-                strokeDasharray="0.5,1"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 1, ease: 'easeOut' }}
-              />
-            );
-          })}
+            {/* Lines: petal node → dynamic child nodes */}
+            <AnimatePresence>
+              {resolvedDynamicNodes.map(node => (
+                <motion.line
+                  key={`dyn-line-${node.id}`}
+                  x1={node.parentX}
+                  y1={node.parentY}
+                  x2={node.x}
+                  y2={node.y}
+                  stroke={node.color}
+                  strokeWidth="0.25"
+                  strokeDasharray="0.8,0.8"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 0.6 }}
+                  exit={{ pathLength: 0, opacity: 0 }}
+                  transition={{ duration: 0.8, delay: node.globalIndex * 0.12, ease: 'easeOut' }}
+                />
+              ))}
+            </AnimatePresence>
 
-          {/* Lines from center to dynamic nodes */}
-          {dynamicNodes.map((node, index) => (
-            <motion.line
-              key={`dyn-line-${node.id}`}
-              x1={centerNode.x}
-              y1={centerNode.y}
-              x2={node.x}
-              y2={node.y}
-              stroke={node.color}
-              strokeWidth="0.3"
-              opacity="0.5"
-              strokeDasharray="1,1"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.5 }}
-              transition={{ duration: 1, delay: index * 0.15, ease: 'easeOut' }}
-            />
-          ))}
+            {/* Static petal nodes */}
+            {nodePositions.map(node => (
+              <motion.g
+                key={node.id}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1, x: node.x, y: node.y }}
+                transition={{ type: 'spring', stiffness: 100, damping: 15, duration: 0.5 }}
+                style={{ cursor: node.isCenter ? 'default' : 'pointer' }}
+                onClick={() => !node.isCenter && handleNodeClick(node.id)}
+              >
+                {node.isCenter ? (
+                  <>
+                    <motion.circle cx="0" cy="0" r="8" fill="url(#starGlow)" opacity="0.3" filter="url(#glow)" />
+                    <motion.circle
+                      cx="0"
+                      cy="0"
+                      r="5"
+                      fill="#de1e3d"
+                      filter="url(#glow)"
+                      animate={{ scale: [1, 1.05, 1], opacity: [0.95, 1, 0.95] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                    {Array.from({ length: 5 }).map((_, i) => {
+                      const angle = (i * 72 - 90) * (Math.PI / 180);
+                      const petalLength = 2.2;
+                      const petalWidth = 1.2;
+                      const x1 = Math.cos(angle) * 0.3;
+                      const y1 = Math.sin(angle) * 0.3;
+                      const x2 = Math.cos(angle) * petalLength;
+                      const y2 = Math.sin(angle) * petalLength;
+                      const perpAngle = angle + Math.PI / 2;
+                      const wx = Math.cos(perpAngle) * petalWidth;
+                      const wy = Math.sin(perpAngle) * petalWidth;
+                      return (
+                        <g key={i}>
+                          <motion.path
+                            d={`M ${x1} ${y1} Q ${x2 + wx} ${y2 + wy} ${x2} ${y2} Q ${x2 - wx} ${y2 - wy} ${x1} ${y1}`}
+                            fill="white"
+                            opacity="0.95"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: i * 0.1, duration: 0.5 }}
+                          />
+                          <motion.circle
+                            cx={Math.cos(angle) * 1.5}
+                            cy={Math.sin(angle) * 1.5}
+                            r="0.25"
+                            fill="#de1e3d"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: i * 0.1 + 0.3, duration: 0.3 }}
+                          />
+                        </g>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <>
+                    <motion.circle
+                      cx="0"
+                      cy="0"
+                      r="6"
+                      fill="url(#starGlow)"
+                      opacity="0.4"
+                      filter="url(#glow)"
+                      animate={{ scale: expandedNodes.has(node.id) ? [1, 1.3, 1] : 1 }}
+                      transition={{ duration: 2, repeat: expandedNodes.has(node.id) ? Infinity : 0 }}
+                    />
+                    <motion.circle
+                      cx="0"
+                      cy="0"
+                      r="3"
+                      fill={node.color}
+                      filter="url(#glow)"
+                      whileHover={{ scale: 1.3 }}
+                      animate={{
+                        scale: expandedNodes.has(node.id) ? [1, 1.15, 1] : 1,
+                        opacity: [0.9, 1, 0.9],
+                      }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                    {Array.from({ length: 4 }).map((_, i) => {
+                      const angle = (i * 90) * (Math.PI / 180);
+                      return (
+                        <motion.line
+                          key={i}
+                          x1="0"
+                          y1="0"
+                          x2={Math.cos(angle) * 3}
+                          y2={Math.sin(angle) * 3}
+                          stroke={node.color}
+                          strokeWidth="0.3"
+                          opacity="0.5"
+                          filter="url(#glow)"
+                        />
+                      );
+                    })}
+                    {(() => {
+                      // Place label 90° clockwise from the outward direction so it
+                      // is never in the same direction as dynamic children
+                      const outward = Math.atan2(node.y - centerNode.y, node.x - centerNode.x);
+                      const perpAngle = outward + Math.PI / 2;
+                      const d = 5;
+                      const lx = Math.cos(perpAngle) * d;
+                      const ly = Math.sin(perpAngle) * d;
+                      const anchor = lx > 0.5 ? 'start' : lx < -0.5 ? 'end' : 'middle';
+                      return (
+                        <text
+                          x={lx}
+                          y={ly}
+                          textAnchor={anchor}
+                          dominantBaseline="middle"
+                          className="fill-white pointer-events-none"
+                          style={{ fontSize: '2.5px', fontWeight: '500' }}
+                        >
+                          {node.label}
+                        </text>
+                      );
+                    })()}
+                  </>
+                )}
+              </motion.g>
+            ))}
 
-          {/* Static nodes */}
-          {nodePositions.map((node) => (
-            <motion.g
-              key={node.id}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1, x: node.x, y: node.y }}
-              transition={{
-                type: 'spring',
-                stiffness: 100,
-                damping: 15,
-                duration: 0.5,
-              }}
-              style={{ cursor: node.isCenter ? 'default' : 'pointer' }}
-              onClick={() => !node.isCenter && handleNodeClick(node.id)}
-            >
-              {node.isCenter ? (
-                <>
-                  {/* Hong Kong Flag in center node */}
-                  <motion.circle
-                    cx="0"
-                    cy="0"
-                    r="8"
-                    fill="url(#starGlow)"
-                    opacity="0.3"
-                    filter="url(#glow)"
-                  />
-                  {/* Red background */}
+            {/* Dynamic child nodes — radiate from their parent petal */}
+            <AnimatePresence>
+              {resolvedDynamicNodes.map(node => (
+                <motion.g
+                  key={`dyn-${node.id}`}
+                  initial={{ scale: 0, opacity: 0, x: node.x, y: node.y }}
+                  animate={{ scale: 1, opacity: 1, x: node.x, y: node.y }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 120,
+                    damping: 15,
+                    delay: node.globalIndex * 0.12,
+                  }}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => handleDynamicNodeClick(node)}
+                >
+                  {/* Outer glow ring */}
                   <motion.circle
                     cx="0"
                     cy="0"
                     r="5"
-                    fill="#de1e3d"
-                    filter="url(#glow)"
-                    animate={{
-                      scale: [1, 1.05, 1],
-                      opacity: [0.95, 1, 0.95],
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                    }}
-                  />
-                  {/* White Bauhinia flower (5 petals) */}
-                  {Array.from({ length: 5 }).map((_, i) => {
-                    const angle = (i * 72 - 90) * (Math.PI / 180);
-                    const petalLength = 2.2;
-                    const petalWidth = 1.2;
-
-                    // Calculate petal points for ellipse-like shape
-                    const x1 = Math.cos(angle) * 0.3;
-                    const y1 = Math.sin(angle) * 0.3;
-                    const x2 = Math.cos(angle) * petalLength;
-                    const y2 = Math.sin(angle) * petalLength;
-
-                    // Perpendicular for width
-                    const perpAngle = angle + Math.PI / 2;
-                    const wx = Math.cos(perpAngle) * petalWidth;
-                    const wy = Math.sin(perpAngle) * petalWidth;
-
-                    return (
-                      <g key={i}>
-                        {/* Petal shape */}
-                        <motion.path
-                          d={`M ${x1} ${y1}
-                              Q ${x2 + wx} ${y2 + wy} ${x2} ${y2}
-                              Q ${x2 - wx} ${y2 - wy} ${x1} ${y1}`}
-                          fill="white"
-                          opacity="0.95"
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: i * 0.1, duration: 0.5 }}
-                        />
-                        {/* Small red star on each petal */}
-                        <motion.circle
-                          cx={Math.cos(angle) * 1.5}
-                          cy={Math.sin(angle) * 1.5}
-                          r="0.25"
-                          fill="#de1e3d"
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: i * 0.1 + 0.3, duration: 0.3 }}
-                        />
-                      </g>
-                    );
-                  })}
-                  <text
-                    x="0"
-                    y="10"
-                    textAnchor="middle"
-                    className="fill-white pointer-events-none"
-                    style={{ fontSize: '3px', fontWeight: '600' }}
-                  >
-                    {node.label}
-                  </text>
-                </>
-              ) : (
-                <>
-                  {/* Outer glow */}
-                  <motion.circle
-                    cx="0"
-                    cy="0"
-                    r="6"
                     fill="url(#starGlow)"
                     opacity="0.4"
                     filter="url(#glow)"
-                    animate={{
-                      scale: expandedNodes.has(node.id) ? [1, 1.3, 1] : 1,
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: expandedNodes.has(node.id) ? Infinity : 0,
-                    }}
+                    animate={{ scale: [1, 1.25, 1] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
                   />
-                  {/* Main star body */}
+                  {/* Node body */}
                   <motion.circle
                     cx="0"
                     cy="0"
-                    r="3"
+                    r="2.2"
                     fill={node.color}
                     filter="url(#glow)"
-                    whileHover={{ scale: 1.3 }}
-                    animate={{
-                      scale: expandedNodes.has(node.id) ? [1, 1.15, 1] : 1,
-                      opacity: [0.9, 1, 0.9],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                    }}
+                    whileHover={{ scale: 1.4 }}
+                    animate={{ opacity: [0.85, 1, 0.85] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                   />
-                  {/* Star sparkle points */}
+                  {/* Sparkle rays — short so they don't reach the connection line */}
                   {Array.from({ length: 4 }).map((_, i) => {
                     const angle = (i * 90) * (Math.PI / 180);
-                    const x = Math.cos(angle) * 4.5;
-                    const y = Math.sin(angle) * 4.5;
                     return (
                       <motion.line
                         key={i}
                         x1="0"
                         y1="0"
-                        x2={x}
-                        y2={y}
+                        x2={Math.cos(angle) * 2.5}
+                        y2={Math.sin(angle) * 2.5}
                         stroke={node.color}
-                        strokeWidth="0.3"
-                        opacity="0.6"
+                        strokeWidth="0.25"
+                        opacity="0.5"
                         filter="url(#glow)"
                       />
                     );
                   })}
-                  {/* Position text away from center to avoid line overlap */}
+                  {/* Name label — perpendicular to radial direction to stay in-bounds */}
                   {(() => {
-                    const angleFromCenter = Math.atan2(node.y - centerNode.y, node.x - centerNode.x);
-                    const textDistance = 12;
-                    const textX = Math.cos(angleFromCenter) * textDistance;
-                    const textY = Math.sin(angleFromCenter) * textDistance;
+                    const perpAngle = node.angle + Math.PI / 2;
+                    const d = 5.5;
+                    const lx = Math.cos(perpAngle) * d;
+                    const ly = Math.sin(perpAngle) * d;
+                    const anchor = lx > 0.5 ? 'start' : lx < -0.5 ? 'end' : 'middle';
                     return (
                       <text
-                        x={textX}
-                        y={textY}
-                        textAnchor="middle"
+                        x={lx}
+                        y={ly}
+                        textAnchor={anchor}
+                        dominantBaseline="middle"
                         className="fill-white pointer-events-none"
-                        style={{ fontSize: '2.5px', fontWeight: '500' }}
+                        style={{ fontSize: '1.8px', fontWeight: '500', opacity: 0.9 }}
                       >
                         {node.label}
                       </text>
                     );
                   })()}
-                </>
-              )}
-            </motion.g>
-          ))}
+                </motion.g>
+              ))}
+            </AnimatePresence>
 
-          {/* Dynamic nodes from Claude */}
-          <AnimatePresence>
-            {dynamicNodes.map((node, index) => (
-              <motion.g
-                key={`dyn-${node.id}`}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1, x: node.x, y: node.y }}
-                exit={{ scale: 0, opacity: 0 }}
-                transition={{
-                  type: 'spring',
-                  stiffness: 120,
-                  damping: 15,
-                  delay: index * 0.1,
-                }}
-                style={{ cursor: 'pointer' }}
-                onClick={() => handleNodeClick(node.id)}
-              >
-                {/* Outer glow */}
-                <motion.circle
-                  cx="0"
-                  cy="0"
-                  r="7"
-                  fill="url(#starGlow)"
-                  opacity="0.5"
-                  filter="url(#glow)"
-                  animate={{
-                    scale: [1, 1.2, 1],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                  }}
-                />
-                {/* Main star body - larger for dynamic nodes */}
-                <motion.circle
-                  cx="0"
-                  cy="0"
-                  r="3.5"
-                  fill={node.color}
-                  filter="url(#glow)"
-                  whileHover={{ scale: 1.3 }}
-                  animate={{
-                    opacity: [0.9, 1, 0.9],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
-                />
-                {/* Star sparkle points */}
-                {Array.from({ length: 4 }).map((_, i) => {
-                  const angle = (i * 90) * (Math.PI / 180);
-                  const x = Math.cos(angle) * 5;
-                  const y = Math.sin(angle) * 5;
-                  return (
-                    <motion.line
-                      key={i}
-                      x1="0"
-                      y1="0"
-                      x2={x}
-                      y2={y}
-                      stroke={node.color}
-                      strokeWidth="0.4"
-                      opacity="0.7"
-                      filter="url(#glow)"
-                    />
-                  );
-                })}
-                {/* Label */}
-                {(() => {
-                  const angleFromCenter = Math.atan2(node.y - centerNode.y, node.x - centerNode.x);
-                  const textDistance = 10;
-                  const textX = Math.cos(angleFromCenter) * textDistance;
-                  const textY = Math.sin(angleFromCenter) * textDistance;
-                  return (
-                    <text
-                      x={textX}
-                      y={textY}
-                      textAnchor="middle"
-                      className="fill-white pointer-events-none"
-                      style={{ fontSize: '2px', fontWeight: '600' }}
-                    >
-                      {node.label.length > 25 ? node.label.substring(0, 22) + '...' : node.label}
-                    </text>
-                  );
-                })()}
-              </motion.g>
-            ))}
-          </AnimatePresence>
-
-          <AnimatePresence>
-            {nodePositions.map((node) => {
-              if (node.isCenter || !expandedNodes.has(node.id) || !node.children) return null;
-
-              // Calculate the angle from center to this node
-              const nodeAngleFromCenter = Math.atan2(node.y - centerNode.y, node.x - centerNode.x);
-
-              return node.children.map((child, index) => {
-                // Spread children in an arc facing outward from the center
-                const totalChildren = node.children!.length;
-                const arcSpread = Math.PI / 3; // 60 degrees arc
-                const startAngle = nodeAngleFromCenter - arcSpread / 2;
-                const angleStep = arcSpread / (totalChildren - 1 || 1);
-                const childAngle = startAngle + angleStep * index;
-
-                const radius = 18;
-                const childX = node.x + Math.cos(childAngle) * radius;
-                const childY = node.y + Math.sin(childAngle) * radius;
-
-                return (
-                  <motion.g
-                    key={`${node.id}-${child.id}`}
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    style={{ cursor: 'pointer' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleChildClick(node.id, child);
-                    }}
-                  >
-                      <line
-                        x1={node.x}
-                        y1={node.y}
-                        x2={childX}
-                        y2={childY}
-                        stroke={node.color}
-                        strokeWidth="0.2"
-                        opacity="0.5"
-                        strokeDasharray="0.5,0.5"
-                      />
-                      {/* Small star for child node */}
-                      <motion.circle
-                        cx={childX}
-                        cy={childY}
-                        r="4"
-                        fill="url(#starGlow)"
-                        opacity="0.3"
-                        filter="url(#glow)"
-                        whileHover={{ scale: 1.5 }}
-                      />
-                      <motion.circle
-                        cx={childX}
-                        cy={childY}
-                        r="1.8"
-                        fill={node.color}
-                        opacity="0.9"
-                        filter="url(#glow)"
-                        whileHover={{ scale: 1.3 }}
-                        animate={{
-                          opacity: selectedChild?.child.id === child.id ? [0.9, 1, 0.9] : 0.9,
-                          scale: selectedChild?.child.id === child.id ? [1, 1.2, 1] : 1,
-                        }}
-                        transition={{
-                          duration: 1.5,
-                          repeat: selectedChild?.child.id === child.id ? Infinity : 0,
-                        }}
-                      />
-                      {/* Star sparkle */}
-                      {Array.from({ length: 4 }).map((_, i) => {
-                        const sparkleAngle = (i * 90) * (Math.PI / 180);
-                        const sparkleX = childX + Math.cos(sparkleAngle) * 2.5;
-                        const sparkleY = childY + Math.sin(sparkleAngle) * 2.5;
-                        return (
-                          <motion.line
-                            key={i}
-                            x1={childX}
-                            y1={childY}
-                            x2={sparkleX}
-                            y2={sparkleY}
-                            stroke={node.color}
-                            strokeWidth="0.2"
-                            opacity="0.5"
-                            filter="url(#glow)"
-                          />
-                        );
-                      })}
-                      {/* Position child text away from parent to avoid line overlap */}
-                      {(() => {
-                        const textAngle = childAngle;
-                        const textDistance = 6;
-                        const textX = childX + Math.cos(textAngle) * textDistance;
-                        const textY = childY + Math.sin(textAngle) * textDistance;
-                        return (
-                          <text
-                            x={textX}
-                            y={textY}
-                            textAnchor="middle"
-                            className="fill-white pointer-events-none"
-                            style={{ fontSize: '2px', fontWeight: '400' }}
-                          >
-                            {child.label}
-                          </text>
-                        );
-                      })()}
-                  </motion.g>
-                );
-              });
-            })}
-          </AnimatePresence>
-          </motion.g>
+          </g>
         </svg>
       </div>
 
+      {/* Detail panels */}
       <AnimatePresence>
-        {selectedChild && !showFullDetails && (
+        {selectedDynamicNode && !showFullDetails && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             className="absolute bottom-4 left-4 right-4 bg-[#1a1f3a]/95 backdrop-blur-lg border-2 rounded-3xl p-5 shadow-2xl"
             style={{
-              borderColor: nodePositions.find(n => n.id === selectedChild.parentId)?.color,
-              boxShadow: `0 0 40px ${nodePositions.find(n => n.id === selectedChild.parentId)?.color}40`
+              borderColor: activeColor,
+              boxShadow: `0 0 40px ${activeColor}40`,
             }}
           >
             <div className="flex items-center justify-between mb-4">
@@ -719,22 +678,22 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
                 <div
                   className="w-5 h-5 rounded-full"
                   style={{
-                    backgroundColor: nodePositions.find(n => n.id === selectedChild.parentId)?.color,
-                    boxShadow: `0 0 15px ${nodePositions.find(n => n.id === selectedChild.parentId)?.color}`
+                    backgroundColor: activeColor,
+                    boxShadow: `0 0 15px ${activeColor}`,
                   }}
                 />
                 <div>
                   <h3 className="text-white" style={{ fontSize: '1.125rem', fontWeight: '600' }}>
-                    {selectedChild.child.label}
+                    {activeChildLabel}
                   </h3>
                   <p className="text-gray-400" style={{ fontSize: '0.75rem' }}>
-                    {nodePositions.find(n => n.id === selectedChild.parentId)?.label}
+                    {activeParentLabel}
                   </p>
                 </div>
               </div>
               <motion.button
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedChild(null)}
+                onClick={handleCloseDetails}
                 className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:bg-white/20"
               >
                 ✕
@@ -742,15 +701,15 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
             </div>
             <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
               <p className="text-white/90 leading-relaxed" style={{ fontSize: '0.9375rem' }}>
-                {selectedChild.child.description}
+                {activeChildDescription}
               </p>
               <motion.button
                 whileTap={{ scale: 0.98 }}
-                onClick={handleLearnMore}
+                onClick={() => setShowFullDetails(true)}
                 className="w-full mt-4 py-3 rounded-xl text-white font-medium"
                 style={{
-                  backgroundColor: nodePositions.find(n => n.id === selectedChild.parentId)?.color,
-                  boxShadow: `0 0 20px ${nodePositions.find(n => n.id === selectedChild.parentId)?.color}50`
+                  backgroundColor: activeColor,
+                  boxShadow: `0 0 20px ${activeColor}50`,
                 }}
               >
                 Learn More
@@ -759,33 +718,36 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
           </motion.div>
         )}
 
-        {selectedChild && showFullDetails && (
+        {selectedDynamicNode && showFullDetails && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+              className="fixed inset-0 bg-black/60 backdrop-blur-md"
+              style={{ zIndex: 50 }}
               onClick={handleCloseDetails}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-h-[80vh] bg-[#1a1f3a] rounded-3xl shadow-2xl overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bg-[#1a1f3a] rounded-3xl shadow-2xl overflow-hidden"
               style={{
+                top: '10vh',
+                left: '5%',
+                width: '90%',
+                height: '80vh',
+                zIndex: 51,
                 borderWidth: 2,
-                borderColor: nodePositions.find(n => n.id === selectedChild.parentId)?.color,
-                boxShadow: `0 0 60px ${nodePositions.find(n => n.id === selectedChild.parentId)?.color}60`
+                borderColor: activeColor,
+                boxShadow: `0 0 60px ${activeColor}60`,
               }}
             >
-              <div className="overflow-y-auto max-h-[80vh]">
-                {/* Header */}
+              <div className="overflow-y-auto h-full">
                 <div
                   className="p-5 relative"
-                  style={{
-                    background: `linear-gradient(135deg, ${nodePositions.find(n => n.id === selectedChild.parentId)?.color}40, transparent)`
-                  }}
+                  style={{ background: `linear-gradient(135deg, ${activeColor}40, transparent)` }}
                 >
                   <motion.button
                     whileTap={{ scale: 0.95 }}
@@ -798,111 +760,66 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
                     <div
                       className="w-12 h-12 rounded-2xl flex items-center justify-center"
                       style={{
-                        backgroundColor: `${nodePositions.find(n => n.id === selectedChild.parentId)?.color}40`,
-                        boxShadow: `0 0 20px ${nodePositions.find(n => n.id === selectedChild.parentId)?.color}50`
+                        backgroundColor: `${activeColor}40`,
+                        boxShadow: `0 0 20px ${activeColor}50`,
                       }}
                     >
-                      <div
-                        className="w-6 h-6 rounded-full"
-                        style={{
-                          backgroundColor: nodePositions.find(n => n.id === selectedChild.parentId)?.color,
-                        }}
-                      />
+                      <div className="w-6 h-6 rounded-full" style={{ backgroundColor: activeColor }} />
                     </div>
                     <div>
                       <h2 className="text-white" style={{ fontSize: '1.5rem', fontWeight: '700' }}>
-                        {selectedChild.child.label}
+                        {activeChildLabel}
                       </h2>
                       <p className="text-gray-400" style={{ fontSize: '0.875rem' }}>
-                        {nodePositions.find(n => n.id === selectedChild.parentId)?.label}
+                        {activeParentLabel}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Content */}
                 <div className="p-5 space-y-5">
                   <div>
                     <h3 className="text-white mb-2" style={{ fontSize: '1.125rem', fontWeight: '600' }}>
                       Overview
                     </h3>
                     <p className="text-gray-300 leading-relaxed" style={{ fontSize: '0.9375rem' }}>
-                      {selectedChild.child.description}
+                      {activeChildDescription}
                     </p>
                   </div>
 
                   <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
                     <h3 className="text-white mb-3" style={{ fontSize: '1.125rem', fontWeight: '600' }}>
-                      Program Details
+                      Details
                     </h3>
                     <div className="space-y-3 text-gray-300" style={{ fontSize: '0.9375rem' }}>
                       <div className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-current mt-2" />
-                        <p><strong className="text-white">Duration:</strong> 12 weeks intensive program</p>
+                        <div className="w-1.5 h-1.5 rounded-full bg-current mt-2 shrink-0" />
+                        <p><strong className="text-white">Category:</strong> {activeParentLabel}</p>
                       </div>
+                      {activeChildMonth && (
+                        <div className="flex items-start gap-3">
+                          <div className="w-1.5 h-1.5 rounded-full bg-current mt-2 shrink-0" />
+                          <p><strong className="text-white">Active Month:</strong> {activeChildMonth}</p>
+                        </div>
+                      )}
                       <div className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-current mt-2" />
-                        <p><strong className="text-white">Location:</strong> Hong Kong - Hybrid (Online & In-person)</p>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-current mt-2" />
-                        <p><strong className="text-white">Next Cohort:</strong> Starting September 2026</p>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-current mt-2" />
-                        <p><strong className="text-white">Benefits:</strong> Mentorship, networking, resources, and potential funding</p>
+                        <div className="w-1.5 h-1.5 rounded-full bg-current mt-2 shrink-0" />
+                        <p><strong className="text-white">Location:</strong> Hong Kong</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                    <h3 className="text-white mb-3" style={{ fontSize: '1.125rem', fontWeight: '600' }}>
-                      What You'll Get
-                    </h3>
-                    <div className="space-y-2 text-gray-300" style={{ fontSize: '0.9375rem' }}>
-                      <div className="flex items-center gap-2">
-                        <span>✨</span>
-                        <span>Access to industry experts and mentors</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span>✨</span>
-                        <span>Networking opportunities with peers and investors</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span>✨</span>
-                        <span>Hands-on workshops and skill development sessions</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span>✨</span>
-                        <span>Certificate of completion and portfolio projects</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
                   <div className="space-y-3 pt-2">
                     <motion.button
                       whileTap={{ scale: 0.98 }}
                       className="w-full py-4 rounded-2xl text-white font-semibold"
                       style={{
-                        background: `linear-gradient(135deg, ${nodePositions.find(n => n.id === selectedChild.parentId)?.color}, ${nodePositions.find(n => n.id === selectedChild.parentId)?.color}dd)`,
-                        boxShadow: `0 0 30px ${nodePositions.find(n => n.id === selectedChild.parentId)?.color}60`
+                        background: `linear-gradient(135deg, ${activeColor}, ${activeColor}dd)`,
+                        boxShadow: `0 0 30px ${activeColor}60`,
                       }}
-                      onClick={() => {
-                        // Simulate opening a sign-up link
-                        alert('Redirecting to sign-up page...\n\nIn a real app, this would open the registration form!');
-                      }}
+                      onClick={() => activeChildLink && window.open(activeChildLink, '_blank')}
                     >
-                      Sign Up Now
-                    </motion.button>
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full py-3 rounded-2xl text-white font-medium bg-white/10 border border-white/20"
-                      onClick={() => {
-                        alert('Opening program website...');
-                      }}
-                    >
-                      Visit Program Website
+                      Visit Website
                     </motion.button>
                   </div>
                 </div>

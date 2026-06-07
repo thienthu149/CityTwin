@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Send, Mic, MicOff, ChevronDown, Sparkles, Zap, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-interface Message {
+export interface Message {
   id: string;
   text: string;
   sender: 'user' | 'ai';
@@ -18,6 +18,8 @@ interface OpportunityNode {
 interface ChatSheetProps {
   onClose: () => void;
   onNodesUpdate: (nodes: OpportunityNode[]) => void;
+  messages: Message[];
+  onMessagesChange: React.Dispatch<React.SetStateAction<Message[]>>;
 }
 
 const quickPrompts = [
@@ -26,14 +28,7 @@ const quickPrompts = [
   { icon: Sparkles, text: 'Scholarships', prompt: 'What scholarships are available?' },
 ];
 
-export function ChatSheet({ onClose, onNodesUpdate }: ChatSheetProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: "Welcome to City Twin. ◉\n\nI'm your personal guide to Hong Kong — connecting you to the opportunities, communities, and people that will help you thrive here.\n\nTell me about yourself. Where are you from? What brought you to Hong Kong — or what's making you consider it? Speak in any language.",
-      sender: 'ai',
-    },
-  ]);
+export function ChatSheet({ onClose, onNodesUpdate, messages, onMessagesChange: setMessages }: ChatSheetProps) {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
