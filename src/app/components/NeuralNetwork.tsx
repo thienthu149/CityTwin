@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface Node {
@@ -90,6 +90,118 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dynamicNodeData, setDynamicNodeData] = useState<DynamicNodeData[]>([]);
+  const [isGesturing, setIsGesturing] = useState(false);
+
+  // Gesture tracking — refs avoid stale closures in event handlers
+  const svgRef = useRef<SVGSVGElement>(null);
+  const gesture = useRef({
+    dragging: false,
+    moved: false,           // true if pointer moved past threshold
+    startClientX: 0,
+    startClientY: 0,
+    startPanX: 0,
+    startPanY: 0,
+    pinchActive: false,
+    pinchStartDist: 0,
+    pinchStartZoom: 1,
+  });
+
+  const svgUnitPerPixel = () => {
+    const w = svgRef.current?.getBoundingClientRect().width ?? 400;
+    return 100 / w;
+  };
+
+  const touchDist = (a: React.Touch, b: React.Touch) => {
+    const dx = a.clientX - b.clientX;
+    const dy = a.clientY - b.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // ── Touch handlers ──────────────────────────────────────────────────────────
+  const onTouchStart = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length === 1) {
+      gesture.current = {
+        ...gesture.current,
+        dragging: true,
+        moved: false,
+        startClientX: e.touches[0].clientX,
+        startClientY: e.touches[0].clientY,
+        startPanX: pan.x,
+        startPanY: pan.y,
+        pinchActive: false,
+      };
+    } else if (e.touches.length === 2) {
+      gesture.current.dragging = false;
+      gesture.current.pinchActive = true;
+      gesture.current.pinchStartDist = touchDist(e.touches[0], e.touches[1]);
+      gesture.current.pinchStartZoom = zoom;
+    }
+  };
+
+  const onTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length === 1 && gesture.current.dragging) {
+      const scale = svgUnitPerPixel();
+      const dx = (e.touches[0].clientX - gesture.current.startClientX) * scale;
+      const dy = (e.touches[0].clientY - gesture.current.startClientY) * scale;
+      if (!gesture.current.moved && (Math.abs(dx) > 0.8 || Math.abs(dy) > 0.8)) {
+        gesture.current.moved = true;
+        setIsGesturing(true);
+      }
+      if (gesture.current.moved) {
+        setPan({ x: gesture.current.startPanX + dx, y: gesture.current.startPanY + dy });
+      }
+    } else if (e.touches.length === 2 && gesture.current.pinchActive) {
+      const dist = touchDist(e.touches[0], e.touches[1]);
+      const newZoom = Math.max(0.4, Math.min(6,
+        gesture.current.pinchStartZoom * dist / gesture.current.pinchStartDist
+      ));
+      setZoom(newZoom);
+    }
+  };
+
+  const onTouchEnd = () => {
+    gesture.current.dragging = false;
+    gesture.current.pinchActive = false;
+    setIsGesturing(false);
+  };
+
+  // ── Mouse handlers (desktop) ────────────────────────────────────────────────
+  const onMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    gesture.current = {
+      ...gesture.current,
+      dragging: true,
+      moved: false,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startPanX: pan.x,
+      startPanY: pan.y,
+    };
+  };
+
+  const onMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!gesture.current.dragging) return;
+    const scale = svgUnitPerPixel();
+    const dx = (e.clientX - gesture.current.startClientX) * scale;
+    const dy = (e.clientY - gesture.current.startClientY) * scale;
+    if (!gesture.current.moved && (Math.abs(dx) > 0.8 || Math.abs(dy) > 0.8)) {
+      gesture.current.moved = true;
+      setIsGesturing(true);
+    }
+    if (gesture.current.moved) {
+      setPan({ x: gesture.current.startPanX + dx, y: gesture.current.startPanY + dy });
+    }
+  };
+
+  const onMouseUp = () => {
+    gesture.current.dragging = false;
+    setIsGesturing(false);
+  };
+
+  // ── Scroll-wheel zoom ───────────────────────────────────────────────────────
+  const onWheel = (e: React.WheelEvent<SVGSVGElement>) => {
+    const factor = e.deltaY > 0 ? 0.92 : 1.09;
+    setZoom(prev => Math.max(0.4, Math.min(6, prev * factor)));
+  };
 
   // Convert opportunity nodes into child positions radiating from their parent petal
   useEffect(() => {
@@ -115,8 +227,8 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
 
       // Outward angle from center through the parent petal
       const petalAngle = Math.atan2(petalNode.y - centerY, petalNode.x - centerX);
-      const childRadius = 15;
-      const arcSpread = Math.PI / 2.2; // ~82° arc
+      const childRadius = 26;
+      const arcSpread = Math.PI / 2; // 90° — wider spread keeps children from clustering
 
       groupNodes.forEach((oppNode, i) => {
         const total = groupNodes.length;
@@ -176,6 +288,7 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
     .filter((n): n is NonNullable<typeof n> => n !== null);
 
   const handleNodeClick = (nodeId: string) => {
+    if (gesture.current.moved) return;
     const clickedNode = nodePositions.find(n => n.id === nodeId);
     setExpandedNodes(prev => {
       const newSet = new Set(prev);
@@ -197,6 +310,7 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
   };
 
   const handleDynamicNodeClick = (data: DynamicNodeData) => {
+    if (gesture.current.moved) return;
     setSelectedDynamicNode(data);
     setShowFullDetails(false);
   };
@@ -248,7 +362,20 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
           </p>
         </div>
 
-        <svg className="w-full h-[calc(100%-4rem)] touch-none" viewBox="0 0 100 100">
+        <svg
+          ref={svgRef}
+          className="w-full h-[calc(100%-4rem)] touch-none select-none"
+          viewBox="0 0 100 100"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
+          onWheel={onWheel}
+          style={{ cursor: isGesturing ? 'grabbing' : 'grab' }}
+        >
           <defs>
             <filter id="glow">
               <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -263,12 +390,7 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
             </radialGradient>
           </defs>
 
-          <motion.g
-            animate={{
-              transform: `translate(${50 + pan.x}, ${50 + pan.y}) scale(${zoom}) translate(-50, -50)`,
-            }}
-            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-          >
+          <g transform={`translate(${50 + pan.x} ${50 + pan.y}) scale(${zoom}) translate(-50 -50)`}>
             {/* Lines: center → petal nodes */}
             {nodePositions.map(node => {
               if (node.isCenter) return null;
@@ -366,11 +488,12 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
                       );
                     })}
                     <text
-                      x="0"
-                      y="10"
-                      textAnchor="middle"
+                      x="9"
+                      y="0.5"
+                      textAnchor="start"
+                      dominantBaseline="middle"
                       className="fill-white pointer-events-none"
-                      style={{ fontSize: '3px', fontWeight: '600' }}
+                      style={{ fontSize: '2.5px', fontWeight: '600' }}
                     >
                       {node.label}
                     </text>
@@ -407,23 +530,30 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
                           key={i}
                           x1="0"
                           y1="0"
-                          x2={Math.cos(angle) * 4.5}
-                          y2={Math.sin(angle) * 4.5}
+                          x2={Math.cos(angle) * 3}
+                          y2={Math.sin(angle) * 3}
                           stroke={node.color}
                           strokeWidth="0.3"
-                          opacity="0.6"
+                          opacity="0.5"
                           filter="url(#glow)"
                         />
                       );
                     })}
                     {(() => {
-                      const angleFromCenter = Math.atan2(node.y - centerNode.y, node.x - centerNode.x);
-                      const textDistance = 12;
+                      // Place label 90° clockwise from the outward direction so it
+                      // is never in the same direction as dynamic children
+                      const outward = Math.atan2(node.y - centerNode.y, node.x - centerNode.x);
+                      const perpAngle = outward + Math.PI / 2;
+                      const d = 5;
+                      const lx = Math.cos(perpAngle) * d;
+                      const ly = Math.sin(perpAngle) * d;
+                      const anchor = lx > 0.5 ? 'start' : lx < -0.5 ? 'end' : 'middle';
                       return (
                         <text
-                          x={Math.cos(angleFromCenter) * textDistance}
-                          y={Math.sin(angleFromCenter) * textDistance}
-                          textAnchor="middle"
+                          x={lx}
+                          y={ly}
+                          textAnchor={anchor}
+                          dominantBaseline="middle"
                           className="fill-white pointer-events-none"
                           style={{ fontSize: '2.5px', fontWeight: '500' }}
                         >
@@ -475,7 +605,7 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
                     animate={{ opacity: [0.85, 1, 0.85] }}
                     transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                   />
-                  {/* Sparkle rays */}
+                  {/* Sparkle rays — short so they don't reach the connection line */}
                   {Array.from({ length: 4 }).map((_, i) => {
                     const angle = (i * 90) * (Math.PI / 180);
                     return (
@@ -483,27 +613,32 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
                         key={i}
                         x1="0"
                         y1="0"
-                        x2={Math.cos(angle) * 3.5}
-                        y2={Math.sin(angle) * 3.5}
+                        x2={Math.cos(angle) * 2.5}
+                        y2={Math.sin(angle) * 2.5}
                         stroke={node.color}
-                        strokeWidth="0.3"
-                        opacity="0.6"
+                        strokeWidth="0.25"
+                        opacity="0.5"
                         filter="url(#glow)"
                       />
                     );
                   })}
-                  {/* Label radiating outward */}
+                  {/* Name label — perpendicular to radial direction to stay in-bounds */}
                   {(() => {
-                    const textDist = 7;
+                    const perpAngle = node.angle + Math.PI / 2;
+                    const d = 5.5;
+                    const lx = Math.cos(perpAngle) * d;
+                    const ly = Math.sin(perpAngle) * d;
+                    const anchor = lx > 0.5 ? 'start' : lx < -0.5 ? 'end' : 'middle';
                     return (
                       <text
-                        x={Math.cos(node.angle) * textDist}
-                        y={Math.sin(node.angle) * textDist}
-                        textAnchor="middle"
+                        x={lx}
+                        y={ly}
+                        textAnchor={anchor}
+                        dominantBaseline="middle"
                         className="fill-white pointer-events-none"
-                        style={{ fontSize: '2px', fontWeight: '500' }}
+                        style={{ fontSize: '1.8px', fontWeight: '500', opacity: 0.9 }}
                       >
-                        {node.label.length > 22 ? node.label.substring(0, 20) + '…' : node.label}
+                        {node.label}
                       </text>
                     );
                   })()}
@@ -511,7 +646,7 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
               ))}
             </AnimatePresence>
 
-          </motion.g>
+          </g>
         </svg>
       </div>
 
@@ -579,21 +714,27 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+              className="fixed inset-0 bg-black/60 backdrop-blur-md"
+              style={{ zIndex: 50 }}
               onClick={handleCloseDetails}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-h-[80vh] bg-[#1a1f3a] rounded-3xl shadow-2xl overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bg-[#1a1f3a] rounded-3xl shadow-2xl overflow-hidden"
               style={{
+                top: '10vh',
+                left: '5%',
+                width: '90%',
+                height: '80vh',
+                zIndex: 51,
                 borderWidth: 2,
                 borderColor: activeColor,
                 boxShadow: `0 0 60px ${activeColor}60`,
               }}
             >
-              <div className="overflow-y-auto max-h-[80vh]">
+              <div className="overflow-y-auto h-full">
                 <div
                   className="p-5 relative"
                   style={{ background: `linear-gradient(135deg, ${activeColor}40, transparent)` }}
