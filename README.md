@@ -2,7 +2,7 @@
 
 > **Premium MVP**: Production-ready conversational AI with voice interface and interactive mapping
 
-🌟 **Live Demo**: http://localhost:5174/
+🚀 **Start your Hong Kong journey**: http://localhost:5173/
 
 ---
 
@@ -15,22 +15,16 @@
 - **Multi-Language**: Auto-detects your language (EN, ES, DE, etc.)
 
 ### 🗺️ Interactive Map
-- **Real Hong Kong Locations**: 20+ organizations with precise coordinates
+- **Real Hong Kong Locations**: 20+ organizations with precise locations
 - **Color-Coded Markers**: By category (funding, education, community, etc.)
-- **Smart Clustering**: Nearby markers group automatically
-- **Rich Popups**: Click markers to see details
+- **Smart Clustering**: Nearby nodes group automatically
+- **Rich Popups**: Click nodes to see details
 
 ### 💬 Premium Chat Interface
 - **Real-Time Streaming**: Sub-second AI responses
-- **Modern Design**: Glass-morphic UI with gradients & animations
+- **Modern Design**: Stardursty design to recreate the nightsky
 - **Audio Playback**: Listen to any AI response
-- **Smart Input**: Auto-expanding textarea with keyboard shortcuts
-
-### 🤖 Powered by Claude 4
-- **Context-Aware**: Remembers conversation history
-- **Personalized**: Tailored recommendations
-- **Multi-Lingual**: Responds in your language
-- **Expert Knowledge**: Deep Hong Kong insights
+- **Smart Input**: Pre-prompted Conversations to help with more easy usability
 
 ---
 
@@ -69,8 +63,9 @@ http://localhost:5174/
 1. Click the **microphone icon** 🎤 in the input field
 2. Speak your question (e.g., "What scholarships are available in Hong Kong?")
 3. Wait for AI to process
-4. **AI automatically speaks the response** 🔊
-5. Continue the conversation naturally
+4. **AI automatically speaks the response** 🔊 
+5. See the results directly as a constallation formin in front of your eyes
+6. Continue the conversation naturally
 
 ### Text Conversation
 1. Type your message in the input field
@@ -79,9 +74,10 @@ http://localhost:5174/
 4. Click **speaker icon** to hear any response
 
 ### Explore Map
-1. Load a demo profile (Sofia, Lena, or Priya)
+1. Start a conversation
 2. Watch markers appear on the map
 3. Click markers to see organization details
+4. Have direct links leading to the organization's website
 4. Zoom and pan to explore Hong Kong
 
 ---
@@ -327,9 +323,3 @@ Traditional city guides are static and generic. City Twin is:
 - **AI-Powered**: Smart recommendations
 
 **Perfect for**: Expats, students, founders, researchers moving to Hong Kong
-
----
-
-**Built with ❤️ using Claude 4, ElevenLabs, and React**
-
-🚀 **Start your Hong Kong journey**: http://localhost:5174/

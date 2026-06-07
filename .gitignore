@@ -23,7 +23,6 @@ build/
 *.njsproj
 *.sln
 *.sw?
-.DS_Store
 
 # Logs
 logs/
@@ -32,6 +31,10 @@ logs/
 # OS files
 Thumbs.db
 .DS_Store
+
+# macOS extended attributes (Windows artifact from downloaded zips)
+*.Zone.Identifier
+*:Zone.Identifier
 
 # Cache
 .cache/
