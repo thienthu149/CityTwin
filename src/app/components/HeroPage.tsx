@@ -44,7 +44,7 @@ export function HeroPage({ onCitySelect }: HeroPageProps) {
   }
 
   return (
-    <div className="h-screen w-full bg-[#0a0e27] overflow-hidden relative flex flex-col">
+    <div className="min-h-screen w-full bg-[#0a0e27] overflow-y-auto relative flex flex-col">
       {/* Header with Logo */}
       <div className="p-6 z-10">
         <CityTwinLogo />
