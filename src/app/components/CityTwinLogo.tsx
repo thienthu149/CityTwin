@@ -186,7 +186,7 @@ export function CityTwinLogo() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.5 }}
         >
-          GLOBAL • CONNECTED • INTELLIGENT
+          EXPLORE • CONNECT • GROW
         </motion.p>
       </div>
     </div>
