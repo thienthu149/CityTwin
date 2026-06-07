@@ -12,7 +12,7 @@ interface City {
 
 const cities: City[] = [
   {
-    name: 'London',
+    name: 'Seoul',
     available: false,
     gradient: 'from-blue-500 to-indigo-600',
     position: { x: 20, y: 30 },
@@ -24,7 +24,7 @@ const cities: City[] = [
     position: { x: 50, y: 45 },
   },
   {
-    name: 'Dubai',
+    name: 'Tokyo',
     available: false,
     gradient: 'from-amber-500 to-orange-600',
     position: { x: 80, y: 35 },
@@ -44,7 +44,7 @@ export function HeroPage({ onCitySelect }: HeroPageProps) {
   }
 
   return (
-    <div className="h-screen w-full bg-[#0a0e27] overflow-hidden relative flex flex-col">
+    <div className="min-h-screen w-full bg-[#0a0e27] overflow-y-auto relative flex flex-col">
       {/* Header with Logo */}
       <div className="p-6 z-10">
         <CityTwinLogo />

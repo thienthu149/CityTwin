@@ -450,6 +450,7 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
                   transition={{ duration: 0.8, delay: node.globalIndex * 0.12, ease: 'easeOut' }}
                 />
               ))}
+              
             </AnimatePresence>
 
             {/* Static petal nodes */}
@@ -632,12 +633,12 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
                       />
                     );
                   })}
-                  {/* Name label — perpendicular to radial direction to stay in-bounds */}
+                  {/* Name label — positioned along radial direction */}
                   {(() => {
-                    const perpAngle = node.angle + Math.PI / 2;
-                    const d = 5.5;
-                    const lx = Math.cos(perpAngle) * d;
-                    const ly = Math.sin(perpAngle) * d;
+                    // Position label along the radial direction from parent
+                    const d = 5; // Distance from node center
+                    const lx = Math.cos(node.angle) * d;
+                    const ly = Math.sin(node.angle) * d;
                     const anchor = lx > 0.5 ? 'start' : lx < -0.5 ? 'end' : 'middle';
                     return (
                       <text
@@ -646,7 +647,7 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
                         textAnchor={anchor}
                         dominantBaseline="middle"
                         className="fill-white pointer-events-none"
-                        style={{ fontSize: '1.8px', fontWeight: '500', opacity: 0.9 }}
+                        style={{ fontSize: '2px', fontWeight: '500', opacity: 0.95 }}
                       >
                         {node.label}
                       </text>
