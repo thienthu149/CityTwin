@@ -1,5 +1,7 @@
 import { motion } from 'motion/react';
+import { useState } from 'react';
 import { CityTwinLogo } from './CityTwinLogo';
+import { B2BForm } from './B2BForm';
 
 interface City {
   name: string;
@@ -34,11 +36,50 @@ interface HeroPageProps {
 }
 
 export function HeroPage({ onCitySelect }: HeroPageProps) {
+  const [mode, setMode] = useState<'b2c' | 'b2b'>('b2c');
+
+  // Show B2B form if in B2B mode
+  if (mode === 'b2b') {
+    return <B2BForm onBack={() => setMode('b2c')} />;
+  }
+
   return (
     <div className="h-screen w-full bg-[#0a0e27] overflow-hidden relative flex flex-col">
       {/* Header with Logo */}
       <div className="p-6 z-10">
         <CityTwinLogo />
+        
+        {/* B2B/B2C Toggle */}
+        <div className="flex items-center justify-center gap-3 mt-6">
+          <motion.button
+            onClick={() => setMode('b2c')}
+            className={`px-6 py-2.5 rounded-xl font-medium transition-all ${
+              mode === 'b2c'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                : 'bg-white/5 text-gray-400 hover:bg-white/10'
+            }`}
+            style={{
+              boxShadow: mode === 'b2c' ? '0 0 20px rgba(168, 85, 247, 0.4)' : 'none',
+            }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Explore
+          </motion.button>
+          <motion.button
+            onClick={() => setMode('b2b')}
+            className={`px-6 py-2.5 rounded-xl font-medium transition-all ${
+              mode === 'b2b'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                : 'bg-white/5 text-gray-400 hover:bg-white/10'
+            }`}
+            style={{
+              boxShadow: mode === 'b2b' ? '0 0 20px rgba(168, 85, 247, 0.4)' : 'none',
+            }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Partner with us
+          </motion.button>
+        </div>
       </div>
 
       {/* Main Content */}
