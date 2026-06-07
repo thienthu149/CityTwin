@@ -3,137 +3,159 @@ import { motion } from 'motion/react';
 export function CityTwinLogo() {
   return (
     <div className="flex items-center gap-3">
-      {/* Logo Icon */}
+      {/* Logo Icon - Purple Circle with City Skyline */}
       <div className="relative">
         <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-          {/* City skyline silhouette */}
-          <motion.path
-            d="M4 32 L8 32 L8 24 L12 24 L12 28 L16 28 L16 20 L20 20 L20 26 L24 26 L24 18 L28 18 L28 22 L32 22 L32 16 L36 16 L36 24 L40 24 L40 32 L44 32 L44 40 L4 40 Z"
-            fill="url(#cityGradient)"
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          />
-
-          {/* Stars above the city */}
-          <motion.circle
-            cx="12"
-            cy="14"
-            r="1.5"
-            fill="#ec4899"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
-          >
-            <animate
-              attributeName="opacity"
-              values="0.5;1;0.5"
-              dur="2s"
-              repeatCount="indefinite"
-            />
-          </motion.circle>
-
+          {/* Purple circle outline */}
           <motion.circle
             cx="24"
-            cy="8"
-            r="2"
-            fill="#de1e3d"
+            cy="24"
+            r="22"
+            fill="none"
+            stroke="#8b5cf6"
+            strokeWidth="2"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, type: 'spring' }}
+          />
+
+          {/* Dark background inside circle */}
+          <motion.circle
+            cx="24"
+            cy="24"
+            r="20"
+            fill="#1a1f3a"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.5, type: 'spring', delay: 0.1 }}
+          />
+
+          {/* Five glowing dots in arc above skyline */}
+          <motion.circle
+            cx="10"
+            cy="16"
+            r="1.5"
+            fill="#e0d4ff"
+            filter="url(#glow)"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.4 }}
           >
             <animate
               attributeName="opacity"
-              values="0.6;1;0.6"
-              dur="2.5s"
-              repeatCount="indefinite"
-            />
-          </motion.circle>
-
-          <motion.circle
-            cx="36"
-            cy="12"
-            r="1.5"
-            fill="#8b5cf6"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.4 }}
-          >
-            <animate
-              attributeName="opacity"
-              values="0.5;1;0.5"
-              dur="3s"
-              repeatCount="indefinite"
-            />
-          </motion.circle>
-
-          {/* Small sparkles */}
-          <motion.circle
-            cx="18"
-            cy="10"
-            r="0.8"
-            fill="white"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 0.8 }}
-            transition={{ delay: 0.5, duration: 0.3 }}
-          >
-            <animate
-              attributeName="opacity"
-              values="0.3;0.8;0.3"
+              values="0.7;1;0.7"
               dur="2s"
               repeatCount="indefinite"
             />
           </motion.circle>
 
           <motion.circle
-            cx="30"
-            cy="14"
-            r="0.8"
-            fill="white"
+            cx="16"
+            cy="12"
+            r="1.5"
+            fill="#e0d4ff"
+            filter="url(#glow)"
             initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 0.8 }}
-            transition={{ delay: 0.6, duration: 0.3 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.35, duration: 0.4 }}
           >
             <animate
               attributeName="opacity"
-              values="0.4;0.8;0.4"
+              values="0.7;1;0.7"
               dur="2.2s"
               repeatCount="indefinite"
             />
           </motion.circle>
 
-          {/* Connecting lines (constellation style) */}
-          <motion.line
-            x1="12"
-            y1="14"
-            x2="24"
-            y2="8"
+          <motion.circle
+            cx="24"
+            cy="10"
+            r="1.5"
+            fill="#e0d4ff"
+            filter="url(#glow)"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+          >
+            <animate
+              attributeName="opacity"
+              values="0.7;1;0.7"
+              dur="2.4s"
+              repeatCount="indefinite"
+            />
+          </motion.circle>
+
+          <motion.circle
+            cx="32"
+            cy="12"
+            r="1.5"
+            fill="#e0d4ff"
+            filter="url(#glow)"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.45, duration: 0.4 }}
+          >
+            <animate
+              attributeName="opacity"
+              values="0.7;1;0.7"
+              dur="2.6s"
+              repeatCount="indefinite"
+            />
+          </motion.circle>
+
+          <motion.circle
+            cx="38"
+            cy="16"
+            r="1.5"
+            fill="#e0d4ff"
+            filter="url(#glow)"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
+          >
+            <animate
+              attributeName="opacity"
+              values="0.7;1;0.7"
+              dur="2.8s"
+              repeatCount="indefinite"
+            />
+          </motion.circle>
+
+          {/* City skyline - outlined buildings with varied heights and shapes */}
+          <motion.g
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
             stroke="white"
-            strokeWidth="0.5"
-            opacity="0.3"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ delay: 0.7, duration: 0.5 }}
-          />
-          <motion.line
-            x1="24"
-            y1="8"
-            x2="36"
-            y2="12"
-            stroke="white"
-            strokeWidth="0.5"
-            opacity="0.3"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ delay: 0.8, duration: 0.5 }}
-          />
+            strokeWidth="1"
+            fill="none"
+          >
+            {/* Left section - shorter buildings */}
+            <path d="M 9 33 L 9 30 L 11 30 L 11 28 L 13 28 L 13 38" />
+            <path d="M 14 38 L 14 26 L 16 26 L 16 24 L 18 24 L 18 38" />
+            
+            {/* Left-center - medium building */}
+            <path d="M 19 38 L 19 22 L 21 22 L 21 20 L 24 20 L 24 38" />
+            
+            {/* Center - tallest building with setback */}
+            <path d="M 25 38 L 25 18 L 27 18 L 27 16 L 29 16 L 29 18 L 31 18 L 31 38" />
+            
+            {/* Right-center - medium building */}
+            <path d="M 32 38 L 32 24 L 34 24 L 34 22 L 36 22 L 36 38" />
+            
+            {/* Right section - varied heights */}
+            <path d="M 37 38 L 37 28 L 39 28 L 39 26 L 41 26 L 41 38" />
+          </motion.g>
 
           <defs>
-            <linearGradient id="cityGradient" x1="24" y1="16" x2="24" y2="40" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#a855f7" stopOpacity="0.8" />
-              <stop offset="50%" stopColor="#ec4899" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#de1e3d" stopOpacity="0.9" />
-            </linearGradient>
+            {/* Glow effect for dots */}
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
           </defs>
         </svg>
       </div>
@@ -164,7 +186,7 @@ export function CityTwinLogo() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.5 }}
         >
-          EXPLORE • CONNECT • GROW
+          GLOBAL • CONNECTED • INTELLIGENT
         </motion.p>
       </div>
     </div>
