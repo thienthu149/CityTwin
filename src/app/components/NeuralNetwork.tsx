@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import database from '../../../database.json';
 
 interface Node {
   id: string;
@@ -25,6 +26,8 @@ interface DynamicNodeData {
   radius: number;
   color: string;
   detail: string;
+  link: string;
+  month: string;
   globalIndex: number;
 }
 
@@ -45,12 +48,12 @@ const createPetalPosition = (index: number, total: number) => {
 };
 
 const petals = [
-  { id: 'community',      label: 'Community',      color: '#ec4899' },
-  { id: 'education',      label: 'Education',      color: '#3b82f6' },
-  { id: 'scholarship',    label: 'Scholarships',   color: '#10b981' },
-  { id: 'grants',         label: 'Grants',         color: '#f59e0b' },
-  { id: 'entrepreneurship', label: 'Entrepreneurship', color: '#8b5cf6' },
-  { id: 'culture',        label: 'Culture',        color: '#06b6d4' },
+  { id: 'funding',   label: 'Funding',   color: '#f59e0b' },
+  { id: 'education', label: 'Education', color: '#3b82f6' },
+  { id: 'expats',    label: 'Expats',    color: '#06b6d4' },
+  { id: 'founders',  label: 'Founders',  color: '#ec4899' },
+  { id: 'study',     label: 'Study',     color: '#10b981' },
+  { id: 'social',    label: 'Social',    color: '#8b5cf6' },
 ];
 
 const mainNodes: Node[] = [
@@ -72,15 +75,28 @@ const mainNodes: Node[] = [
   }),
 ];
 
-// Maps AI-returned category strings to our petal node IDs
 const categoryToPetalId: Record<string, string> = {
-  funding: 'grants',
-  scholarship: 'scholarship',
-  community: 'community',
+  funding: 'funding',
   education: 'education',
-  social: 'culture',
-  event: 'entrepreneurship',
+  expats: 'expats',
+  founders: 'founders',
+  study: 'study',
+  social: 'social',
 };
+
+// Flat lookup: lowercased name → database entry (for enriching AI-returned nodes)
+const _allDbItems = [
+  ...database.hong_kong_ecosystem.funding,
+  ...database.hong_kong_ecosystem.education,
+  ...database.hong_kong_ecosystem.expats,
+  ...database.hong_kong_ecosystem.founders,
+  ...database.hong_kong_ecosystem.study,
+  ...database.hong_kong_ecosystem.social,
+];
+const dbByName: Record<string, { id: string; details: string; link: string; month: string }> = {};
+for (const item of _allDbItems) {
+  dbByName[item.name.toLowerCase()] = { id: item.id, details: item.details, link: item.link, month: item.month };
+}
 
 export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
@@ -203,17 +219,16 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
     setZoom(prev => Math.max(0.4, Math.min(6, prev * factor)));
   };
 
-  // Convert opportunity nodes into child positions radiating from their parent petal
+  // Build child nodes from AI-returned recommendations, enriched with database details
   useEffect(() => {
     if (nodes.length === 0) {
       setDynamicNodeData([]);
       return;
     }
 
-    // Group by parent petal
     const grouped: Record<string, OpportunityNode[]> = {};
     for (const oppNode of nodes) {
-      const petalId = categoryToPetalId[oppNode.category] || 'entrepreneurship';
+      const petalId = categoryToPetalId[oppNode.category.toLowerCase()] ?? 'founders';
       if (!grouped[petalId]) grouped[petalId] = [];
       grouped[petalId].push(oppNode);
     }
@@ -225,10 +240,9 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
       const petalNode = mainNodes.find(n => n.id === petalId);
       if (!petalNode) continue;
 
-      // Outward angle from center through the parent petal
       const petalAngle = Math.atan2(petalNode.y - centerY, petalNode.x - centerX);
       const childRadius = 26;
-      const arcSpread = Math.PI / 2; // 90° — wider spread keeps children from clustering
+      const arcSpread = Math.PI / 2;
 
       groupNodes.forEach((oppNode, i) => {
         const total = groupNodes.length;
@@ -236,14 +250,18 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
         const angleStep = total > 1 ? arcSpread / (total - 1) : 0;
         const childAngle = total > 1 ? startAngle + angleStep * i : petalAngle;
 
+        const dbEntry = dbByName[oppNode.name.toLowerCase()];
+
         newData.push({
-          id: oppNode.id,
+          id: dbEntry?.id ?? oppNode.id,
           label: oppNode.name,
           parentPetalId: petalId,
           angle: childAngle,
           radius: childRadius,
           color: petalNode.color,
-          detail: oppNode.reason,
+          detail: dbEntry?.details ?? oppNode.reason,
+          link: dbEntry?.link ?? '',
+          month: dbEntry?.month ?? '',
           globalIndex: globalIndex++,
         });
       });
@@ -326,6 +344,8 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
     : undefined;
   const activeChildLabel = selectedDynamicNode?.label;
   const activeChildDescription = selectedDynamicNode?.detail;
+  const activeChildLink = selectedDynamicNode?.link;
+  const activeChildMonth = selectedDynamicNode?.month;
 
   return (
     <div className="h-full relative overflow-hidden">
@@ -487,16 +507,6 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
                         </g>
                       );
                     })}
-                    <text
-                      x="9"
-                      y="0.5"
-                      textAnchor="start"
-                      dominantBaseline="middle"
-                      className="fill-white pointer-events-none"
-                      style={{ fontSize: '2.5px', fontWeight: '600' }}
-                    >
-                      {node.label}
-                    </text>
                   </>
                 ) : (
                   <>
@@ -779,41 +789,23 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
 
                   <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
                     <h3 className="text-white mb-3" style={{ fontSize: '1.125rem', fontWeight: '600' }}>
-                      Program Details
+                      Details
                     </h3>
                     <div className="space-y-3 text-gray-300" style={{ fontSize: '0.9375rem' }}>
-                      {[
-                        ['Duration', '12 weeks intensive program'],
-                        ['Location', 'Hong Kong — Hybrid (Online & In-person)'],
-                        ['Next Cohort', 'Starting September 2026'],
-                        ['Benefits', 'Mentorship, networking, resources, and potential funding'],
-                      ].map(([key, value]) => (
-                        <div key={key} className="flex items-start gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-current mt-2 shrink-0" />
+                        <p><strong className="text-white">Category:</strong> {activeParentLabel}</p>
+                      </div>
+                      {activeChildMonth && (
+                        <div className="flex items-start gap-3">
                           <div className="w-1.5 h-1.5 rounded-full bg-current mt-2 shrink-0" />
-                          <p>
-                            <strong className="text-white">{key}:</strong> {value}
-                          </p>
+                          <p><strong className="text-white">Active Month:</strong> {activeChildMonth}</p>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                    <h3 className="text-white mb-3" style={{ fontSize: '1.125rem', fontWeight: '600' }}>
-                      What You'll Get
-                    </h3>
-                    <div className="space-y-2 text-gray-300" style={{ fontSize: '0.9375rem' }}>
-                      {[
-                        'Access to industry experts and mentors',
-                        'Networking opportunities with peers and investors',
-                        'Hands-on workshops and skill development sessions',
-                        'Certificate of completion and portfolio projects',
-                      ].map(item => (
-                        <div key={item} className="flex items-center gap-2">
-                          <span>✨</span>
-                          <span>{item}</span>
-                        </div>
-                      ))}
+                      )}
+                      <div className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-current mt-2 shrink-0" />
+                        <p><strong className="text-white">Location:</strong> Hong Kong</p>
+                      </div>
                     </div>
                   </div>
 
@@ -825,16 +817,9 @@ export function NeuralNetwork({ nodes }: NeuralNetworkProps) {
                         background: `linear-gradient(135deg, ${activeColor}, ${activeColor}dd)`,
                         boxShadow: `0 0 30px ${activeColor}60`,
                       }}
-                      onClick={() => alert('Redirecting to sign-up page...')}
+                      onClick={() => activeChildLink && window.open(activeChildLink, '_blank')}
                     >
-                      Sign Up Now
-                    </motion.button>
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full py-3 rounded-2xl text-white font-medium bg-white/10 border border-white/20"
-                      onClick={() => alert('Opening program website...')}
-                    >
-                      Visit Program Website
+                      Visit Website
                     </motion.button>
                   </div>
                 </div>
