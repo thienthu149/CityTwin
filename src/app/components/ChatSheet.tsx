@@ -34,10 +34,17 @@ export function ChatSheet({ onClose, onNodesUpdate, messages, onMessagesChange: 
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSend = async (text?: string) => {
     const messageText = text || input.trim();
     if (!messageText || isLoading) return;
+
+    // Cancel any pending auto-close if user sends another message
+    if (autoCloseTimerRef.current) {
+      clearTimeout(autoCloseTimerRef.current);
+      autoCloseTimerRef.current = null;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -119,6 +126,9 @@ export function ChatSheet({ onClose, onNodesUpdate, messages, onMessagesChange: 
           // Ignore malformed JSON
         }
       }
+
+      // Slide down right after text is displayed so the map + subnodes are visible
+      autoCloseTimerRef.current = setTimeout(() => onClose(), 400);
     } catch (err) {
       console.error(err);
       setMessages(prev => [
@@ -142,7 +152,6 @@ export function ChatSheet({ onClose, onNodesUpdate, messages, onMessagesChange: 
   // Voice input using Groq Whisper API
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const [transcribing, setTranscribing] = useState(false);
 
   const toggleRecording = async () => {
     if (isRecording) {
@@ -170,7 +179,6 @@ export function ChatSheet({ onClose, onNodesUpdate, messages, onMessagesChange: 
 
         if (!chunksRef.current.length) return;
 
-        setTranscribing(true);
         try {
           const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
           const formData = new FormData();
@@ -184,8 +192,6 @@ export function ChatSheet({ onClose, onNodesUpdate, messages, onMessagesChange: 
           }
         } catch (err) {
           console.error('Transcription error:', err);
-        } finally {
-          setTranscribing(false);
         }
       };
 
@@ -519,7 +525,7 @@ export function ChatSheet({ onClose, onNodesUpdate, messages, onMessagesChange: 
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Ask me anything..."
               className="relative w-full h-12 px-4 pr-12 rounded-2xl bg-[#0f1729]/80 text-white placeholder-gray-500 focus:outline-none focus:bg-[#0f1729]/90 transition-all backdrop-blur-sm z-10"
               style={{ fontSize: '0.9375rem' }}
